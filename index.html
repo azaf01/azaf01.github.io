@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0E1116">
+<title>LiveDeck — Kongsi persembahan secara langsung</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+<style>
+  :root{
+    --bg:#0E1116; --surface:#171B22; --surface-2:#1F242E; --border:#2A313D;
+    --text:#E6E9EF; --muted:#8A94A6; --muted-2:#5C6675;
+    --accent:#2DD4BF; --accent-press:#22b9a7;
+    --live:#FF4D4D; --warn:#F5A524;
+    --radius:14px; --radius-sm:10px;
+    --shadow:0 10px 40px rgba(0,0,0,.45);
+    --font:'Inter',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:var(--font);overscroll-behavior:none}
+  body{display:flex;flex-direction:column;min-height:100dvh}
+  button{font-family:inherit;cursor:pointer;border:none;color:inherit}
+  input{font-family:inherit}
+  .hidden{display:none !important}
+  .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px;border-bottom:1px solid var(--border);padding-top:calc(14px + env(safe-area-inset-top));background:linear-gradient(180deg,rgba(23,27,34,.9),rgba(23,27,34,.6));backdrop-filter:blur(8px);position:sticky;top:0;z-index:20}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:-.3px;font-size:17px}
+  .brand .dot{width:10px;height:10px;border-radius:3px;background:var(--accent);box-shadow:0 0 14px var(--accent)}
+  .brand small{font-weight:600;color:var(--muted);font-size:11px;letter-spacing:.12em;text-transform:uppercase}
+  .pill{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:600;padding:6px 11px;border-radius:999px;border:1px solid var(--border);background:var(--surface-2);color:var(--muted)}
+  .pill .ring{width:8px;height:8px;border-radius:50%;background:var(--muted-2)}
+  .pill.live{color:#fff;border-color:rgba(255,77,77,.4);background:rgba(255,77,77,.12)}
+  .pill.live .ring{background:var(--live);animation:pulse 1.6s ease-in-out infinite}
+  .pill.ok{color:var(--accent);border-color:rgba(45,212,191,.35);background:rgba(45,212,191,.1)}
+  .pill.ok .ring{background:var(--accent)}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(255,77,77,.55)}50%{box-shadow:0 0 0 6px rgba(255,77,77,0)}}
+  #home{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:28px 22px;gap:26px;text-align:center}
+  .hero h1{font-size:clamp(30px,8vw,44px);line-height:1.02;letter-spacing:-1.2px;margin:0 0 12px;font-weight:800}
+  .hero h1 .em{color:var(--accent)}
+  .hero p{margin:0;color:var(--muted);font-size:15px;max-width:330px;line-height:1.5}
+  .choices{display:flex;flex-direction:column;gap:14px;width:100%;max-width:360px}
+  .card-btn{display:flex;align-items:center;gap:16px;text-align:left;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 18px;transition:border-color .15s,transform .08s,background .15s}
+  .card-btn:active{transform:scale(.985)}
+  .card-btn:hover{border-color:#3a4252}
+  .card-btn .ic{flex:none;width:46px;height:46px;border-radius:12px;display:grid;place-items:center;font-size:22px}
+  .card-btn.host .ic{background:rgba(255,77,77,.14);color:var(--live)}
+  .card-btn.join .ic{background:rgba(45,212,191,.14);color:var(--accent)}
+  .card-btn .t{font-weight:700;font-size:16px}
+  .card-btn .s{color:var(--muted);font-size:13px;margin-top:2px}
+  .card-btn .arr{margin-left:auto;color:var(--muted-2);font-size:20px}
+  .home-foot{color:var(--muted-2);font-size:12px;max-width:330px;line-height:1.5}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:15px;padding:13px 18px;border-radius:var(--radius-sm);background:var(--surface-2);border:1px solid var(--border);transition:transform .08s,background .15s,border-color .15s}
+  .btn:active{transform:scale(.97)}
+  .btn.primary{background:var(--accent);color:#06231f;border-color:transparent}
+  .btn.primary:active{background:var(--accent-press)}
+  .btn.ghost{background:transparent}
+  .btn:disabled{opacity:.4;pointer-events:none}
+  .btn.icon{padding:13px 15px}
+  .stage{flex:1;position:relative;background:#000;display:grid;place-items:center;overflow:hidden;min-height:0}
+  .stage img{max-width:100%;max-height:100%;width:auto;height:auto;display:block;user-select:none;-webkit-user-drag:none}
+  .stage .placeholder{position:absolute;inset:0;display:flex;flex-direction:column;gap:14px;align-items:center;justify-content:center;color:var(--muted);padding:30px;text-align:center}
+  .counter{position:absolute;left:14px;bottom:14px;font-family:var(--mono);font-size:13px;font-weight:700;background:rgba(0,0,0,.55);border:1px solid var(--border);padding:6px 11px;border-radius:999px;backdrop-filter:blur(6px)}
+  .stage .tapzone{position:absolute;top:0;bottom:0;width:30%;z-index:5}
+  .stage .tapzone.l{left:0}.stage .tapzone.r{right:0}
+  .controls{border-top:1px solid var(--border);background:var(--surface);padding:12px 14px;padding-bottom:calc(12px + env(safe-area-inset-bottom))}
+  .nav-row{display:flex;align-items:center;gap:10px}
+  .nav-row .btn{flex:1}
+  .thumbs{display:flex;gap:8px;overflow-x:auto;padding:12px 2px 4px;scrollbar-width:thin;scroll-behavior:smooth}
+  .thumbs::-webkit-scrollbar{height:5px}.thumbs::-webkit-scrollbar-thumb{background:var(--border);border-radius:9px}
+  .thumb{flex:none;width:74px;height:46px;border-radius:8px;overflow:hidden;border:2px solid var(--border);background:#000;opacity:.65;transition:.15s}
+  .thumb.active{border-color:var(--accent);opacity:1}
+  .thumb img{width:100%;height:100%;object-fit:cover}
+  .empty-thumbs{color:var(--muted-2);font-size:13px;padding:10px 2px}
+  .panel{padding:22px;max-width:460px;margin:0 auto;width:100%}
+  .panel h2{font-size:20px;margin:0 0 6px;letter-spacing:-.4px}
+  .panel .sub{color:var(--muted);font-size:14px;margin:0 0 20px;line-height:1.5}
+  .codebox{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;text-align:center;margin-bottom:16px}
+  .codebox .lbl{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:700}
+  .code-chars{font-family:var(--mono);font-weight:700;font-size:34px;letter-spacing:8px;margin:10px 0 4px;color:#fff}
+  #qr{display:inline-block;margin-top:14px;padding:10px;background:#fff;border-radius:12px;line-height:0}
+  #qr img,#qr canvas{display:block;border-radius:4px}
+  .share-row{display:flex;gap:10px;margin-top:16px}
+  .share-row .btn{flex:1}
+  .field{margin-bottom:14px}
+  .field label{display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:7px}
+  .field input{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:16px;padding:14px;outline:none;transition:border-color .15s}
+  .field input:focus{border-color:var(--accent)}
+  .code-input{font-family:var(--mono);font-weight:700;letter-spacing:6px;text-align:center;text-transform:uppercase;font-size:22px !important}
+  .dropzone{border:2px dashed var(--border);border-radius:var(--radius);padding:30px 20px;text-align:center;color:var(--muted);transition:.15s;background:var(--surface);margin-bottom:14px}
+  .dropzone.drag{border-color:var(--accent);background:rgba(45,212,191,.06);color:var(--text)}
+  .dropzone .big{font-size:34px;opacity:.6;margin-bottom:8px}
+  .dropzone b{color:var(--accent)}
+  .dropzone small{display:block;margin-top:8px;font-size:12px;color:var(--muted-2)}
+  .status-line{display:flex;align-items:center;gap:9px;color:var(--muted);font-size:14px;justify-content:center;padding:14px}
+  .spinner{width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .err{color:var(--warn);font-size:13px;text-align:center;margin-top:10px;line-height:1.5}
+  .toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(20px);background:var(--surface-2);border:1px solid var(--border);color:var(--text);padding:11px 18px;border-radius:999px;font-size:14px;font-weight:600;opacity:0;pointer-events:none;transition:.25s;z-index:60;box-shadow:var(--shadow)}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .backlink{background:none;border:none;color:var(--muted);font-size:14px;font-weight:600;display:inline-flex;align-items:center;gap:6px}
+  @media (prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important}}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+</style>
+</head>
+<body>
+<section id="home">
+  <div class="hero">
+    <h1>Satu skrin,<br><span class="em">semua telefon.</span></h1>
+    <p>Kongsi slaid persembahan secara langsung. Presenter tukar slaid — semua viewer ikut serentak. iOS & Android.</p>
+  </div>
+  <div class="choices">
+    <button class="card-btn host" id="goHost"><span class="ic">●</span><span><span class="t">Hos persembahan</span><span class="s">Muat naik slaid & kawal sesi</span></span><span class="arr">→</span></button>
+    <button class="card-btn join" id="goJoin"><span class="ic">⇲</span><span><span class="t">Sertai sesi</span><span class="s">Masukkan kod untuk tonton langsung</span></span><span class="arr">→</span></button>
+  </div>
+  <p class="home-foot">Peer-to-peer (WebRTC) — tiada server, slaid pergi terus antara telefon. Untuk pengalaman terbaik, host fail ini di mana-mana (Synology / static host) & buka link pada dua telefon.</p>
+</section>
+
+<section id="host" class="hidden" style="flex:1;display:flex;flex-direction:column;min-height:0">
+  <div class="topbar">
+    <div class="brand"><span class="dot"></span>LiveDeck <small>Presenter</small></div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span class="pill" id="hostViewers"><span class="ring"></span>0</span>
+      <span class="pill live" id="hostLive"><span class="ring"></span>LIVE</span>
+    </div>
+  </div>
+  <div id="hostSetup" class="panel" style="flex:1;overflow-y:auto">
+    <button class="backlink" data-home>← Kembali</button>
+    <h2 style="margin-top:16px">Kod sesi anda</h2>
+    <p class="sub">Kongsikan kod atau QR ini. Sesiapa yang sertai akan nampak slaid anda secara langsung.</p>
+    <div class="codebox">
+      <div class="lbl">Kod sesi</div>
+      <div class="code-chars" id="hostCode">·····</div>
+      <div id="qr"></div>
+    </div>
+    <div class="share-row">
+      <button class="btn" id="copyCode">Salin kod</button>
+      <button class="btn primary" id="shareLink">Kongsi link</button>
+    </div>
+    <div style="height:22px"></div>
+    <div class="dropzone" id="drop">
+      <div class="big">⬆</div>
+      <div><b>Pilih slaid</b> — PDF atau gambar</div>
+      <small>PDF akan jadi slaid automatik. Boleh pilih banyak gambar.</small>
+    </div>
+    <input type="file" id="file" accept="application/pdf,image/*" multiple class="hidden">
+    <div id="hostLoad" class="status-line hidden"><span class="spinner"></span><span id="hostLoadTxt">Memproses…</span></div>
+    <div class="err" id="hostErr"></div>
+  </div>
+  <div id="hostStage" class="hidden" style="flex:1;display:flex;flex-direction:column;min-height:0">
+    <div class="stage">
+      <div class="tapzone l" data-prev></div>
+      <div class="tapzone r" data-next></div>
+      <img id="hostImg" alt="Slaid semasa">
+      <div class="counter" id="hostCounter">1 / 1</div>
+    </div>
+    <div class="controls">
+      <div class="thumbs" id="thumbs"></div>
+      <div class="nav-row">
+        <button class="btn icon" id="prevBtn">‹ Sebelum</button>
+        <button class="btn icon" id="addMore" title="Tambah slaid">＋</button>
+        <button class="btn primary icon" id="nextBtn" style="flex:1.3">Seterusnya ›</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="view" class="hidden" style="flex:1;display:flex;flex-direction:column;min-height:0">
+  <div class="topbar">
+    <div class="brand"><span class="dot"></span>LiveDeck <small>Viewer</small></div>
+    <span class="pill" id="viewStatus"><span class="ring"></span>Menyambung…</span>
+  </div>
+  <div id="viewJoin" class="panel" style="flex:1;overflow-y:auto">
+    <button class="backlink" data-home>← Kembali</button>
+    <h2 style="margin-top:16px">Sertai sesi langsung</h2>
+    <p class="sub">Masukkan kod 5-aksara yang diberi oleh presenter.</p>
+    <div class="field">
+      <label for="joinCode">Kod sesi</label>
+      <input id="joinCode" class="code-input" maxlength="5" autocomplete="off" autocapitalize="characters" placeholder="·····">
+    </div>
+    <button class="btn primary" id="joinBtn" style="width:100%">Sertai sekarang</button>
+    <div class="err" id="viewErr"></div>
+  </div>
+  <div id="viewStage" class="hidden" style="flex:1;display:flex;flex-direction:column;min-height:0">
+    <div class="stage">
+      <img id="viewImg" alt="Slaid langsung">
+      <div class="placeholder" id="viewWait">
+        <div class="spinner"></div>
+        <div id="viewWaitTxt">Menunggu presenter…</div>
+      </div>
+      <div class="counter hidden" id="viewCounter">1 / 1</div>
+    </div>
+  </div>
+</section>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+const $ = (s,r=document)=>r.querySelector(s);
+const PREFIX = "livedeck-";
+const ALPHA  = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+const CHUNK  = 48*1024;
+const ICE = { iceServers:[
+  { urls:"stun:stun.l.google.com:19302" },
+  { urls:"stun:global.stun.twilio.com:3478" },
+  { urls:"turn:openrelay.metered.ca:80", username:"openrelayproject", credential:"openrelayproject" },
+  { urls:"turn:openrelay.metered.ca:443", username:"openrelayproject", credential:"openrelayproject" }
+]};
+if (window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc =
+  "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+const screens = { home:$("#home"), host:$("#host"), view:$("#view") };
+function show(name){ for(const k in screens) screens[k].classList.toggle("hidden", k!==name); }
+function toast(msg){ const t=$("#toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove("show"),2000); }
+document.querySelectorAll("[data-home]").forEach(b=>b.addEventListener("click",()=>{ cleanup(); show("home"); }));
+$("#goHost").addEventListener("click", startHost);
+$("#goJoin").addEventListener("click", ()=>{ show("view"); $("#joinCode").focus(); });
+
+function genCode(){ let s=""; for(let i=0;i<5;i++) s+=ALPHA[Math.floor(Math.random()*ALPHA.length)]; return s; }
+function shareUrl(code){ const u=new URL(location.href); u.search=""; u.searchParams.set("room",code); u.searchParams.set("view","1"); return u.toString(); }
+function toSlide(srcCanvasOrImg){
+  const max=1600;
+  let w=srcCanvasOrImg.width, h=srcCanvasOrImg.height;
+  if(Math.max(w,h)>max){ const r=max/Math.max(w,h); w=Math.round(w*r); h=Math.round(h*r); }
+  const c=document.createElement("canvas"); c.width=w; c.height=h;
+  c.getContext("2d").drawImage(srcCanvasOrImg,0,0,w,h);
+  return c.toDataURL("image/jpeg",0.72);
+}
+function loadImageFile(file){
+  return new Promise((res,rej)=>{
+    const img=new Image();
+    img.onload=()=>res(toSlide(img));
+    img.onerror=()=>rej(new Error("Gambar tak dapat dibaca"));
+    img.src=URL.createObjectURL(file);
+  });
+}
+async function loadPdfFile(file){
+  const buf=await file.arrayBuffer();
+  const pdf=await pdfjsLib.getDocument({data:buf}).promise;
+  const out=[];
+  for(let p=1;p<=pdf.numPages;p++){
+    const page=await pdf.getPage(p);
+    let vp=page.getViewport({scale:1});
+    const scale=Math.min(2, 1600/Math.max(vp.width,vp.height));
+    vp=page.getViewport({scale});
+    const c=document.createElement("canvas"); c.width=vp.width; c.height=vp.height;
+    await page.render({canvasContext:c.getContext("2d"),viewport:vp}).promise;
+    out.push(c.toDataURL("image/jpeg",0.72));
+  }
+  return out;
+}
+
+let peer=null, conns=new Map(), slides=[], idx=0, myCode="";
+function setHostUI(){ $("#hostViewers").innerHTML='<span class="ring"></span>'+conns.size; }
+function startHost(){
+  show("host");
+  $("#hostSetup").classList.remove("hidden");
+  $("#hostStage").classList.add("hidden");
+  $("#hostErr").textContent="";
+  slides=[]; idx=0;
+  createPeer();
+}
+function createPeer(attempt=0){
+  myCode=genCode();
+  $("#hostCode").textContent="·····";
+  $("#hostLive").classList.add("hidden");
+  if(peer){ try{peer.destroy();}catch(e){} }
+  peer=new Peer(PREFIX+myCode,{config:ICE,debug:1});
+  peer.on("open",()=>{
+    $("#hostCode").textContent=myCode;
+    $("#hostLive").classList.remove("hidden");
+    renderQR(shareUrl(myCode));
+  });
+  peer.on("connection",conn=>{
+    conn.on("open",()=>{ conns.set(conn.peer,conn); setHostUI(); pushDeck(conn); toast("Viewer baru menyertai"); });
+    conn.on("close",()=>{ conns.delete(conn.peer); setHostUI(); });
+    conn.on("error",()=>{ conns.delete(conn.peer); setHostUI(); });
+  });
+  peer.on("error",err=>{
+    if(err.type==="unavailable-id" && attempt<5){ createPeer(attempt+1); return; }
+    if(err.type==="peer-unavailable") return;
+    $("#hostErr").textContent="Ralat sambungan: "+err.type+". Cuba semula.";
+  });
+}
+function renderQR(url){
+  const el=$("#qr"); el.innerHTML="";
+  try{ new QRCode(el,{text:url,width:148,height:148,colorDark:"#0E1116",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.M}); }
+  catch(e){ el.textContent=""; }
+}
+function pushDeck(conn){
+  if(!slides.length){ conn.send({t:"empty"}); return; }
+  conn.send({t:"meta",total:slides.length,index:idx});
+  const order=[idx]; for(let i=0;i<slides.length;i++) if(i!==idx) order.push(i);
+  for(const i of order) sendSlide(conn,i);
+  conn.send({t:"go",index:idx});
+}
+function sendSlide(conn,i){
+  const data=slides[i]; const n=Math.ceil(data.length/CHUNK);
+  conn.send({t:"sb",i,n});
+  for(let k=0;k<n;k++) conn.send({t:"sc",i,k,d:data.slice(k*CHUNK,(k+1)*CHUNK)});
+  conn.send({t:"se",i});
+}
+function broadcast(obj){ conns.forEach(c=>{ try{c.send(obj);}catch(e){} }); }
+function broadcastNewDeck(){ conns.forEach(c=>pushDeck(c)); }
+
+const drop=$("#drop"), fileInput=$("#file");
+drop.addEventListener("click",()=>fileInput.click());
+$("#addMore").addEventListener("click",()=>fileInput.click());
+["dragover","dragenter"].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.add("drag");}));
+["dragleave","drop"].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.remove("drag");}));
+drop.addEventListener("drop",ev=>{ if(ev.dataTransfer.files.length) handleFiles(ev.dataTransfer.files); });
+fileInput.addEventListener("change",e=>{ if(e.target.files.length) handleFiles(e.target.files); fileInput.value=""; });
+
+async function handleFiles(files){
+  $("#hostErr").textContent="";
+  const load=$("#hostLoad"), txt=$("#hostLoadTxt"); load.classList.remove("hidden");
+  const list=[...files], started=slides.length;
+  try{
+    for(let n=0;n<list.length;n++){
+      const f=list[n]; txt.textContent=`Memproses ${n+1}/${list.length}…`;
+      if(f.type==="application/pdf"){ const pages=await loadPdfFile(f); slides.push(...pages); }
+      else if(f.type.startsWith("image/")){ slides.push(await loadImageFile(f)); }
+    }
+    if(!slides.length){ $("#hostErr").textContent="Tiada slaid sah dijumpai."; return; }
+    if(started===0) idx=0;
+    enterHostStage();
+    broadcastNewDeck();
+  }catch(err){ $("#hostErr").textContent=err.message||"Gagal memproses fail."; }
+  finally{ load.classList.add("hidden"); }
+}
+
+function enterHostStage(){
+  $("#hostSetup").classList.add("hidden");
+  $("#hostStage").classList.remove("hidden");
+  renderThumbs(); renderHost();
+}
+function renderThumbs(){
+  const wrap=$("#thumbs"); wrap.innerHTML="";
+  slides.forEach((s,i)=>{
+    const t=document.createElement("button");
+    t.className="thumb"+(i===idx?" active":""); t.innerHTML=`<img src="${s}" alt="">`;
+    t.addEventListener("click",()=>gotoHost(i));
+    wrap.appendChild(t);
+  });
+}
+function renderHost(){
+  $("#hostImg").src=slides[idx];
+  $("#hostCounter").textContent=`${idx+1} / ${slides.length}`;
+  const tw=$("#thumbs"); [...tw.children].forEach((c,i)=>c.classList.toggle("active",i===idx));
+  const a=tw.children[idx]; if(a) a.scrollIntoView({inline:"center",block:"nearest"});
+}
+function gotoHost(i){
+  if(i<0||i>=slides.length) return;
+  idx=i; renderHost(); broadcast({t:"go",index:idx});
+}
+$("#nextBtn").addEventListener("click",()=>gotoHost(idx+1));
+$("#prevBtn").addEventListener("click",()=>gotoHost(idx-1));
+document.querySelectorAll("[data-next]").forEach(z=>z.addEventListener("click",()=>gotoHost(idx+1)));
+document.querySelectorAll("[data-prev]").forEach(z=>z.addEventListener("click",()=>gotoHost(idx-1)));
+
+$("#copyCode").addEventListener("click",()=>{ navigator.clipboard?.writeText(myCode); toast("Kod disalin"); });
+$("#shareLink").addEventListener("click",async()=>{
+  const url=shareUrl(myCode);
+  if(navigator.share){ try{ await navigator.share({title:"Sertai persembahan langsung",text:`Kod: ${myCode}`,url}); }catch(e){} }
+  else { navigator.clipboard?.writeText(url); toast("Link disalin"); }
+});
+
+let vpeer=null, vconn=null, vslides=[], vbuf={}, vtotal=0, vidx=0;
+function setViewStatus(state){
+  const el=$("#viewStatus");
+  const map={ connecting:["","Menyambung…"], live:["ok","Langsung"], lost:["","Sambungan putus"] };
+  const [cls,txt]=map[state]||["",state];
+  el.className="pill"+(cls?" "+cls:""); el.innerHTML=`<span class="ring"></span>${txt}`;
+}
+$("#joinCode").addEventListener("input",e=>{ e.target.value=e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,""); });
+$("#joinCode").addEventListener("keydown",e=>{ if(e.key==="Enter") joinSession(); });
+$("#joinBtn").addEventListener("click",joinSession);
+function joinSession(){
+  const code=$("#joinCode").value.trim().toUpperCase();
+  $("#viewErr").textContent="";
+  if(code.length!==5){ $("#viewErr").textContent="Kod mesti 5 aksara."; return; }
+  $("#viewJoin").classList.add("hidden");
+  $("#viewStage").classList.remove("hidden");
+  setViewStatus("connecting");
+  vslides=[]; vbuf={}; vtotal=0; vidx=0;
+  $("#viewImg").src=""; $("#viewWait").classList.remove("hidden"); $("#viewCounter").classList.add("hidden");
+  if(vpeer){ try{vpeer.destroy();}catch(e){} }
+  vpeer=new Peer({config:ICE,debug:1});
+  vpeer.on("open",()=>connectToHost(code));
+  vpeer.on("error",err=>{
+    if(err.type==="peer-unavailable"){ showJoinError("Sesi tak dijumpai. Semak kod atau presenter belum mula."); }
+    else showJoinError("Ralat: "+err.type);
+  });
+}
+function connectToHost(code){
+  vconn=vpeer.connect(PREFIX+code,{reliable:true});
+  let opened=false;
+  const timer=setTimeout(()=>{ if(!opened) showJoinError("Tak dapat menyambung. Cuba rangkaian lain / pastikan presenter aktif."); },12000);
+  vconn.on("open",()=>{ opened=true; clearTimeout(timer); setViewStatus("live"); });
+  vconn.on("data",handleViewData);
+  vconn.on("close",()=>{ setViewStatus("lost"); $("#viewWaitTxt").textContent="Presenter telah menamatkan sesi."; $("#viewWait").classList.remove("hidden"); });
+  vconn.on("error",()=>{ clearTimeout(timer); showJoinError("Sambungan gagal."); });
+}
+function showJoinError(msg){
+  $("#viewStage").classList.add("hidden");
+  $("#viewJoin").classList.remove("hidden");
+  $("#viewErr").textContent=msg;
+}
+function handleViewData(m){
+  switch(m.t){
+    case "empty": $("#viewWaitTxt").textContent="Presenter belum memuat naik slaid…"; break;
+    case "meta": vtotal=m.total; vidx=m.index; vslides=new Array(m.total).fill(null); break;
+    case "sb": vbuf[m.i]=new Array(m.n).fill(""); break;
+    case "sc": if(vbuf[m.i]) vbuf[m.i][m.k]=m.d; break;
+    case "se":
+      if(vbuf[m.i]){ vslides[m.i]=vbuf[m.i].join(""); delete vbuf[m.i]; if(m.i===vidx) renderView(); }
+      break;
+    case "go": vidx=m.index; renderView(); break;
+  }
+}
+function renderView(){
+  if(vslides[vidx]){
+    $("#viewImg").src=vslides[vidx];
+    $("#viewWait").classList.add("hidden");
+    $("#viewCounter").classList.remove("hidden");
+    $("#viewCounter").textContent=`${vidx+1} / ${vtotal}`;
+  }else{
+    $("#viewWait").classList.remove("hidden");
+    $("#viewWaitTxt").textContent="Memuatkan slaid…";
+  }
+}
+
+document.addEventListener("keydown",e=>{
+  if(screens.host.classList.contains("hidden")) return;
+  if($("#hostStage").classList.contains("hidden")) return;
+  if(e.key==="ArrowRight"||e.key===" ") gotoHost(idx+1);
+  if(e.key==="ArrowLeft") gotoHost(idx-1);
+});
+(function swipe(){
+  let x0=null;
+  const stage=$("#hostStage");
+  stage.addEventListener("touchstart",e=>{ x0=e.touches[0].clientX; },{passive:true});
+  stage.addEventListener("touchend",e=>{
+    if(x0===null) return; const dx=e.changedTouches[0].clientX-x0; x0=null;
+    if(Math.abs(dx)>45) gotoHost(idx + (dx<0?1:-1));
+  },{passive:true});
+})();
+
+function cleanup(){
+  try{peer&&peer.destroy();}catch(e){} peer=null; conns.clear();
+  try{vpeer&&vpeer.destroy();}catch(e){} vpeer=null; vconn=null;
+  slides=[]; vslides=[]; idx=0;
+}
+
+(function deeplink(){
+  const p=new URLSearchParams(location.search);
+  const room=(p.get("room")||"").toUpperCase().replace(/[^A-Z0-9]/g,"");
+  if(room && p.get("view")==="1"){
+    show("view"); $("#joinCode").value=room;
+    if(window.Peer) joinSession();
+  }
+})();
+</script>
+</body>
+</html>
