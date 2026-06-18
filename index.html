@@ -10,6 +10,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 
+<!-- Libraries -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -31,110 +32,193 @@
   button{font-family:inherit;cursor:pointer;border:none;color:inherit}
   input{font-family:inherit}
   .hidden{display:none !important}
-  .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px;border-bottom:1px solid var(--border);padding-top:calc(14px + env(safe-area-inset-top));background:linear-gradient(180deg,rgba(23,27,34,.9),rgba(23,27,34,.6));backdrop-filter:blur(8px);position:sticky;top:0;z-index:20}
-  .brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:-.3px;font-size:17px}
-  .brand .dot{width:10px;height:10px;border-radius:3px;background:var(--accent);box-shadow:0 0 14px var(--accent)}
-  .brand small{font-weight:600;color:var(--muted);font-size:11px;letter-spacing:.12em;text-transform:uppercase}
-  .pill{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:600;padding:6px 11px;border-radius:999px;border:1px solid var(--border);background:var(--surface-2);color:var(--muted)}
-  .pill .ring{width:8px;height:8px;border-radius:50%;background:var(--muted-2)}
+
+  /* ---------- Shared chrome ---------- */
+  .topbar{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding:11px 16px;border-bottom:1px solid var(--border);
+    padding-top:calc(11px + env(safe-area-inset-top));
+    background:linear-gradient(180deg,rgba(23,27,34,.9),rgba(23,27,34,.6));
+    backdrop-filter:blur(8px);position:sticky;top:0;z-index:20
+  }
+  .brand{display:flex;align-items:center;gap:8px;font-weight:800;letter-spacing:-.3px;font-size:15px}
+  .brand .dot{width:9px;height:9px;border-radius:3px;background:var(--accent);box-shadow:0 0 14px var(--accent)}
+  .brand small{font-weight:600;color:var(--muted);font-size:10px;letter-spacing:.12em;text-transform:uppercase}
+
+  .topbtn{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;font-size:15px;
+    background:var(--surface-2);border:1px solid var(--border);color:var(--text)}
+  .topbtn:active{transform:scale(.94)}
+
+  .pill{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;
+    padding:5px 10px;border-radius:999px;border:1px solid var(--border);background:var(--surface-2);color:var(--muted)}
+  .pill .ring{width:7px;height:7px;border-radius:50%;background:var(--muted-2)}
   .pill.live{color:#fff;border-color:rgba(255,77,77,.4);background:rgba(255,77,77,.12)}
   .pill.live .ring{background:var(--live);animation:pulse 1.6s ease-in-out infinite}
   .pill.ok{color:var(--accent);border-color:rgba(45,212,191,.35);background:rgba(45,212,191,.1)}
   .pill.ok .ring{background:var(--accent)}
   @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(255,77,77,.55)}50%{box-shadow:0 0 0 6px rgba(255,77,77,0)}}
-  #home{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:28px 22px;gap:26px;text-align:center}
-  .hero h1{font-size:clamp(30px,8vw,44px);line-height:1.02;letter-spacing:-1.2px;margin:0 0 12px;font-weight:800}
+
+  /* ---------- Home ---------- */
+  #home{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:24px 22px;gap:22px;text-align:center}
+  .hero h1{font-size:clamp(26px,7vw,38px);line-height:1.04;letter-spacing:-1px;margin:0 0 10px;font-weight:800}
   .hero h1 .em{color:var(--accent)}
-  .hero p{margin:0;color:var(--muted);font-size:15px;max-width:330px;line-height:1.5}
-  .choices{display:flex;flex-direction:column;gap:14px;width:100%;max-width:360px}
-  .card-btn{display:flex;align-items:center;gap:16px;text-align:left;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 18px;transition:border-color .15s,transform .08s,background .15s}
+  .hero p{margin:0;color:var(--muted);font-size:13.5px;max-width:320px;line-height:1.5}
+  .choices{display:flex;flex-direction:column;gap:12px;width:100%;max-width:340px}
+  .card-btn{display:flex;align-items:center;gap:14px;text-align:left;
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+    padding:15px 16px;transition:border-color .15s,transform .08s,background .15s}
   .card-btn:active{transform:scale(.985)}
   .card-btn:hover{border-color:#3a4252}
-  .card-btn .ic{flex:none;width:46px;height:46px;border-radius:12px;display:grid;place-items:center;font-size:22px}
+  .card-btn .ic{flex:none;width:40px;height:40px;border-radius:11px;display:grid;place-items:center;font-size:19px}
   .card-btn.host .ic{background:rgba(255,77,77,.14);color:var(--live)}
   .card-btn.join .ic{background:rgba(45,212,191,.14);color:var(--accent)}
-  .card-btn .t{font-weight:700;font-size:16px}
-  .card-btn .s{color:var(--muted);font-size:13px;margin-top:2px}
-  .card-btn .arr{margin-left:auto;color:var(--muted-2);font-size:20px}
-  .home-foot{color:var(--muted-2);font-size:12px;max-width:330px;line-height:1.5}
-  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:15px;padding:13px 18px;border-radius:var(--radius-sm);background:var(--surface-2);border:1px solid var(--border);transition:transform .08s,background .15s,border-color .15s}
+  .card-btn .t{font-weight:700;font-size:14.5px}
+  .card-btn .s{color:var(--muted);font-size:12px;margin-top:2px}
+  .card-btn .arr{margin-left:auto;color:var(--muted-2);font-size:18px}
+  .home-foot{color:var(--muted-2);font-size:11.5px;max-width:320px;line-height:1.5}
+
+  /* ---------- Buttons ---------- */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;
+    font-weight:700;font-size:14px;padding:11px 16px;border-radius:var(--radius-sm);
+    background:var(--surface-2);border:1px solid var(--border);transition:transform .08s,background .15s,border-color .15s}
   .btn:active{transform:scale(.97)}
   .btn.primary{background:var(--accent);color:#06231f;border-color:transparent}
   .btn.primary:active{background:var(--accent-press)}
   .btn.ghost{background:transparent}
   .btn:disabled{opacity:.4;pointer-events:none}
-  .btn.icon{padding:13px 15px}
+  .btn.icon{padding:11px 13px}
+
+  /* ---------- Stage (shared by host & viewer) ---------- */
   .stage{flex:1;position:relative;background:#000;display:grid;place-items:center;overflow:hidden;min-height:0}
   .stage img{max-width:100%;max-height:100%;width:auto;height:auto;display:block;user-select:none;-webkit-user-drag:none}
-  .stage .placeholder{position:absolute;inset:0;display:flex;flex-direction:column;gap:14px;align-items:center;justify-content:center;color:var(--muted);padding:30px;text-align:center}
-  .counter{position:absolute;left:14px;bottom:14px;font-family:var(--mono);font-size:13px;font-weight:700;background:rgba(0,0,0,.55);border:1px solid var(--border);padding:6px 11px;border-radius:999px;backdrop-filter:blur(6px)}
+  .stage .placeholder{position:absolute;inset:0;display:flex;flex-direction:column;gap:12px;align-items:center;justify-content:center;color:var(--muted);padding:28px;text-align:center}
+  .stage .placeholder .big{font-size:38px;opacity:.5}
+  .counter{position:absolute;left:12px;bottom:12px;font-family:var(--mono);font-size:12px;font-weight:700;
+    background:rgba(0,0,0,.55);border:1px solid var(--border);padding:5px 10px;border-radius:999px;backdrop-filter:blur(6px)}
   .stage .tapzone{position:absolute;top:0;bottom:0;width:30%;z-index:5}
   .stage .tapzone.l{left:0}.stage .tapzone.r{right:0}
-  .controls{border-top:1px solid var(--border);background:var(--surface);padding:12px 14px;padding-bottom:calc(12px + env(safe-area-inset-bottom))}
-  .nav-row{display:flex;align-items:center;gap:10px}
+
+  /* ---------- Host controls ---------- */
+  .controls{border-top:1px solid var(--border);background:var(--surface);padding:10px 12px;padding-bottom:calc(10px + env(safe-area-inset-bottom))}
+  .nav-row{display:flex;align-items:center;gap:8px}
   .nav-row .btn{flex:1}
-  .thumbs{display:flex;gap:8px;overflow-x:auto;padding:12px 2px 4px;scrollbar-width:thin;scroll-behavior:smooth}
+  .thumbs{display:flex;gap:7px;overflow-x:auto;padding:10px 2px 4px;scrollbar-width:thin;scroll-behavior:smooth}
   .thumbs::-webkit-scrollbar{height:5px}.thumbs::-webkit-scrollbar-thumb{background:var(--border);border-radius:9px}
-  .thumb{flex:none;width:74px;height:46px;border-radius:8px;overflow:hidden;border:2px solid var(--border);background:#000;opacity:.65;transition:.15s}
+  .thumb{flex:none;width:64px;height:40px;border-radius:7px;overflow:hidden;border:2px solid var(--border);background:#000;opacity:.65;transition:.15s}
   .thumb.active{border-color:var(--accent);opacity:1}
   .thumb img{width:100%;height:100%;object-fit:cover}
-  .empty-thumbs{color:var(--muted-2);font-size:13px;padding:10px 2px}
-  .panel{padding:22px;max-width:460px;margin:0 auto;width:100%}
-  .panel h2{font-size:20px;margin:0 0 6px;letter-spacing:-.4px}
-  .panel .sub{color:var(--muted);font-size:14px;margin:0 0 20px;line-height:1.5}
-  .codebox{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;text-align:center;margin-bottom:16px}
-  .codebox .lbl{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:700}
-  .code-chars{font-family:var(--mono);font-weight:700;font-size:34px;letter-spacing:8px;margin:10px 0 4px;color:#fff}
-  #qr{display:inline-block;margin-top:14px;padding:10px;background:#fff;border-radius:12px;line-height:0}
+  .empty-thumbs{color:var(--muted-2);font-size:12px;padding:10px 2px}
+
+  /* ---------- Sheets / setup panels ---------- */
+  .panel{padding:20px;max-width:440px;margin:0 auto;width:100%}
+  .panel h2{font-size:18px;margin:0 0 6px;letter-spacing:-.4px}
+  .panel .sub{color:var(--muted);font-size:13px;margin:0 0 18px;line-height:1.5}
+  .codebox{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;text-align:center;margin-bottom:14px}
+  .codebox .lbl{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:700}
+  .code-chars{font-family:var(--mono);font-weight:700;font-size:30px;letter-spacing:7px;margin:9px 0 4px;color:#fff}
+  #qr{display:inline-block;margin-top:12px;padding:9px;background:#fff;border-radius:12px;line-height:0}
   #qr img,#qr canvas{display:block;border-radius:4px}
-  .share-row{display:flex;gap:10px;margin-top:16px}
+  .share-row{display:flex;gap:9px;margin-top:14px}
   .share-row .btn{flex:1}
-  .field{margin-bottom:14px}
-  .field label{display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:7px}
-  .field input{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:16px;padding:14px;outline:none;transition:border-color .15s}
+
+  .field{margin-bottom:13px}
+  .field label{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin-bottom:6px}
+  .field input{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);
+    color:var(--text);font-size:15px;padding:13px;outline:none;transition:border-color .15s}
   .field input:focus{border-color:var(--accent)}
-  .code-input{font-family:var(--mono);font-weight:700;letter-spacing:6px;text-align:center;text-transform:uppercase;font-size:22px !important}
-  .dropzone{border:2px dashed var(--border);border-radius:var(--radius);padding:30px 20px;text-align:center;color:var(--muted);transition:.15s;background:var(--surface);margin-bottom:14px}
+  .code-input{font-family:var(--mono);font-weight:700;letter-spacing:6px;text-align:center;text-transform:uppercase;font-size:20px !important}
+
+  .dropzone{border:2px dashed var(--border);border-radius:var(--radius);padding:24px 18px;text-align:center;color:var(--muted);
+    transition:.15s;background:var(--surface);margin-bottom:13px}
   .dropzone.drag{border-color:var(--accent);background:rgba(45,212,191,.06);color:var(--text)}
-  .dropzone .big{font-size:34px;opacity:.6;margin-bottom:8px}
+  .dropzone .big{font-size:30px;opacity:.6;margin-bottom:7px}
   .dropzone b{color:var(--accent)}
-  .dropzone small{display:block;margin-top:8px;font-size:12px;color:var(--muted-2)}
-  .status-line{display:flex;align-items:center;gap:9px;color:var(--muted);font-size:14px;justify-content:center;padding:14px}
+  .dropzone small{display:block;margin-top:7px;font-size:11.5px;color:var(--muted-2)}
+
+  .status-line{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px;justify-content:center;padding:13px}
   .spinner{width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
   @keyframes spin{to{transform:rotate(360deg)}}
-  .err{color:var(--warn);font-size:13px;text-align:center;margin-top:10px;line-height:1.5}
-  .toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(20px);background:var(--surface-2);border:1px solid var(--border);color:var(--text);padding:11px 18px;border-radius:999px;font-size:14px;font-weight:600;opacity:0;pointer-events:none;transition:.25s;z-index:60;box-shadow:var(--shadow)}
+  .err{color:var(--warn);font-size:12.5px;text-align:center;margin-top:10px;line-height:1.5}
+
+  .toast{position:fixed;left:50%;bottom:calc(22px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(20px);
+    background:var(--surface-2);border:1px solid var(--border);color:var(--text);padding:10px 16px;border-radius:999px;
+    font-size:13px;font-weight:600;opacity:0;pointer-events:none;transition:.25s;z-index:60;box-shadow:var(--shadow)}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-  .backlink{background:none;border:none;color:var(--muted);font-size:14px;font-weight:600;display:inline-flex;align-items:center;gap:6px}
+
+  .backlink{background:none;border:none;color:var(--muted);font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:6px}
+
+  /* ---------- Immersive / fullscreen ---------- */
+  body.immersive .topbar, body.immersive .controls{display:none !important}
+  .fs-ctrl{position:fixed;top:calc(10px + env(safe-area-inset-top));z-index:55;
+    width:38px;height:38px;border-radius:50%;background:rgba(0,0,0,.55);border:1px solid var(--border);
+    color:#fff;display:none;place-items:center;backdrop-filter:blur(6px)}
+  .fs-ctrl:active{transform:scale(.92)}
+  .fs-ctrl.l{left:12px}.fs-ctrl.r{right:12px}
+  body.immersive .fs-ctrl{display:grid}
+
+  /* ---------- Landscape phones: slim chrome, bigger slide ---------- */
+  @media (orientation:landscape) and (max-height:600px){
+    .topbar{padding:7px 14px;padding-top:calc(7px + env(safe-area-inset-top))}
+    .controls{padding:7px 12px;padding-bottom:calc(7px + env(safe-area-inset-bottom))}
+    .thumbs{display:none}
+    .btn{padding:8px 12px;font-size:13px}
+    .nav-row{gap:7px}
+    .counter{left:10px;bottom:10px}
+    #home{justify-content:flex-start;overflow-y:auto;padding:16px 22px;gap:14px}
+    .hero h1{font-size:clamp(22px,5vw,30px);margin-bottom:6px}
+    .hero p{font-size:12.5px}
+    .panel{padding:14px 20px}
+    .code-chars{font-size:26px;margin:5px 0 3px}
+    #qr{margin-top:8px;padding:7px}
+  }
+
   @media (prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important}}
   :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
 </style>
 </head>
 <body>
+
+<!-- ============ HOME ============ -->
 <section id="home">
   <div class="hero">
     <h1>Satu skrin,<br><span class="em">semua telefon.</span></h1>
     <p>Kongsi slaid persembahan secara langsung. Presenter tukar slaid — semua viewer ikut serentak. iOS & Android.</p>
   </div>
   <div class="choices">
-    <button class="card-btn host" id="goHost"><span class="ic">●</span><span><span class="t">Hos persembahan</span><span class="s">Muat naik slaid & kawal sesi</span></span><span class="arr">→</span></button>
-    <button class="card-btn join" id="goJoin"><span class="ic">⇲</span><span><span class="t">Sertai sesi</span><span class="s">Masukkan kod untuk tonton langsung</span></span><span class="arr">→</span></button>
+    <button class="card-btn host" id="goHost">
+      <span class="ic">●</span>
+      <span><span class="t">Hos persembahan</span><span class="s">Muat naik slaid & kawal sesi</span></span>
+      <span class="arr">→</span>
+    </button>
+    <button class="card-btn join" id="goJoin">
+      <span class="ic">⇲</span>
+      <span><span class="t">Sertai sesi</span><span class="s">Masukkan kod untuk tonton langsung</span></span>
+      <span class="arr">→</span>
+    </button>
   </div>
   <p class="home-foot">Peer-to-peer (WebRTC) — tiada server, slaid pergi terus antara telefon. Untuk pengalaman terbaik, host fail ini di mana-mana (Synology / static host) & buka link pada dua telefon.</p>
 </section>
 
+<!-- ============ HOST ============ -->
 <section id="host" class="hidden" style="flex:1;display:flex;flex-direction:column;min-height:0">
   <div class="topbar">
-    <div class="brand"><span class="dot"></span>LiveDeck <small>Presenter</small></div>
+    <div style="display:flex;gap:9px;align-items:center;min-width:0">
+      <button class="topbtn" data-home title="Kembali" aria-label="Kembali"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+      <div class="brand"><span class="dot"></span>LiveDeck <small>Presenter</small></div>
+    </div>
     <div style="display:flex;gap:8px;align-items:center">
       <span class="pill" id="hostViewers"><span class="ring"></span>0</span>
       <span class="pill live" id="hostLive"><span class="ring"></span>LIVE</span>
+      <button class="topbtn" id="fsHost" title="Skrin penuh" aria-label="Skrin penuh"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg></button>
     </div>
   </div>
+
+  <!-- setup (before slides) -->
   <div id="hostSetup" class="panel" style="flex:1;overflow-y:auto">
     <button class="backlink" data-home>← Kembali</button>
     <h2 style="margin-top:16px">Kod sesi anda</h2>
     <p class="sub">Kongsikan kod atau QR ini. Sesiapa yang sertai akan nampak slaid anda secara langsung.</p>
+
     <div class="codebox">
       <div class="lbl">Kod sesi</div>
       <div class="code-chars" id="hostCode">·····</div>
@@ -144,6 +228,7 @@
       <button class="btn" id="copyCode">Salin kod</button>
       <button class="btn primary" id="shareLink">Kongsi link</button>
     </div>
+
     <div style="height:22px"></div>
     <div class="dropzone" id="drop">
       <div class="big">⬆</div>
@@ -154,6 +239,8 @@
     <div id="hostLoad" class="status-line hidden"><span class="spinner"></span><span id="hostLoadTxt">Memproses…</span></div>
     <div class="err" id="hostErr"></div>
   </div>
+
+  <!-- live stage -->
   <div id="hostStage" class="hidden" style="flex:1;display:flex;flex-direction:column;min-height:0">
     <div class="stage">
       <div class="tapzone l" data-prev></div>
@@ -172,11 +259,20 @@
   </div>
 </section>
 
+<!-- ============ VIEWER ============ -->
 <section id="view" class="hidden" style="flex:1;display:flex;flex-direction:column;min-height:0">
   <div class="topbar">
-    <div class="brand"><span class="dot"></span>LiveDeck <small>Viewer</small></div>
-    <span class="pill" id="viewStatus"><span class="ring"></span>Menyambung…</span>
+    <div style="display:flex;gap:9px;align-items:center;min-width:0">
+      <button class="topbtn" data-home title="Kembali" aria-label="Kembali"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+      <div class="brand"><span class="dot"></span>LiveDeck <small>Viewer</small></div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span class="pill" id="viewStatus"><span class="ring"></span>Menyambung…</span>
+      <button class="topbtn" id="fsView" title="Skrin penuh" aria-label="Skrin penuh"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg></button>
+    </div>
   </div>
+
+  <!-- join form -->
   <div id="viewJoin" class="panel" style="flex:1;overflow-y:auto">
     <button class="backlink" data-home>← Kembali</button>
     <h2 style="margin-top:16px">Sertai sesi langsung</h2>
@@ -188,6 +284,8 @@
     <button class="btn primary" id="joinBtn" style="width:100%">Sertai sekarang</button>
     <div class="err" id="viewErr"></div>
   </div>
+
+  <!-- live stage -->
   <div id="viewStage" class="hidden" style="flex:1;display:flex;flex-direction:column;min-height:0">
     <div class="stage">
       <img id="viewImg" alt="Slaid langsung">
@@ -200,32 +298,44 @@
   </div>
 </section>
 
+<button class="fs-ctrl l" data-home title="Kembali" aria-label="Kembali"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+<button class="fs-ctrl r" id="fsExit" title="Keluar skrin penuh" aria-label="Keluar skrin penuh"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></svg></button>
 <div class="toast" id="toast"></div>
 
 <script>
 "use strict";
+/* ---------------------------------------------------------
+   LiveDeck — P2P live presentation sharing (PeerJS / WebRTC)
+   --------------------------------------------------------- */
 const $ = (s,r=document)=>r.querySelector(s);
-const PREFIX = "livedeck-";
-const ALPHA  = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-const CHUNK  = 48*1024;
+const PREFIX = "livedeck-";            // namespaced peer ids on the public broker
+const ALPHA  = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no ambiguous chars
+const CHUNK  = 48*1024;                // slide data chunk size
+
 const ICE = { iceServers:[
   { urls:"stun:stun.l.google.com:19302" },
   { urls:"stun:global.stun.twilio.com:3478" },
   { urls:"turn:openrelay.metered.ca:80", username:"openrelayproject", credential:"openrelayproject" },
   { urls:"turn:openrelay.metered.ca:443", username:"openrelayproject", credential:"openrelayproject" }
 ]};
+
 if (window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc =
   "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
+/* ---------- screen switching ---------- */
 const screens = { home:$("#home"), host:$("#host"), view:$("#view") };
 function show(name){ for(const k in screens) screens[k].classList.toggle("hidden", k!==name); }
 function toast(msg){ const t=$("#toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove("show"),2000); }
+
 document.querySelectorAll("[data-home]").forEach(b=>b.addEventListener("click",()=>{ cleanup(); show("home"); }));
 $("#goHost").addEventListener("click", startHost);
 $("#goJoin").addEventListener("click", ()=>{ show("view"); $("#joinCode").focus(); });
 
+/* ---------- helpers ---------- */
 function genCode(){ let s=""; for(let i=0;i<5;i++) s+=ALPHA[Math.floor(Math.random()*ALPHA.length)]; return s; }
 function shareUrl(code){ const u=new URL(location.href); u.search=""; u.searchParams.set("room",code); u.searchParams.set("view","1"); return u.toString(); }
+
+// downscale any image file/bitmap source to a compact JPEG dataURL
 function toSlide(srcCanvasOrImg){
   const max=1600;
   let w=srcCanvasOrImg.width, h=srcCanvasOrImg.height;
@@ -258,8 +368,15 @@ async function loadPdfFile(file){
   return out;
 }
 
+/* =========================================================
+   HOST
+   ========================================================= */
 let peer=null, conns=new Map(), slides=[], idx=0, myCode="";
-function setHostUI(){ $("#hostViewers").innerHTML='<span class="ring"></span>'+conns.size; }
+
+function setHostUI(){
+  $("#hostViewers").innerHTML='<span class="ring"></span>'+conns.size;
+}
+
 function startHost(){
   show("host");
   $("#hostSetup").classList.remove("hidden");
@@ -268,12 +385,14 @@ function startHost(){
   slides=[]; idx=0;
   createPeer();
 }
+
 function createPeer(attempt=0){
   myCode=genCode();
   $("#hostCode").textContent="·····";
   $("#hostLive").classList.add("hidden");
   if(peer){ try{peer.destroy();}catch(e){} }
   peer=new Peer(PREFIX+myCode,{config:ICE,debug:1});
+
   peer.on("open",()=>{
     $("#hostCode").textContent=myCode;
     $("#hostLive").classList.remove("hidden");
@@ -286,15 +405,18 @@ function createPeer(attempt=0){
   });
   peer.on("error",err=>{
     if(err.type==="unavailable-id" && attempt<5){ createPeer(attempt+1); return; }
-    if(err.type==="peer-unavailable") return;
+    if(err.type==="peer-unavailable") return; // viewer side concern
     $("#hostErr").textContent="Ralat sambungan: "+err.type+". Cuba semula.";
   });
 }
+
 function renderQR(url){
   const el=$("#qr"); el.innerHTML="";
   try{ new QRCode(el,{text:url,width:148,height:148,colorDark:"#0E1116",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.M}); }
   catch(e){ el.textContent=""; }
 }
+
+/* send the whole deck to one viewer (current slide first) */
 function pushDeck(conn){
   if(!slides.length){ conn.send({t:"empty"}); return; }
   conn.send({t:"meta",total:slides.length,index:idx});
@@ -311,6 +433,7 @@ function sendSlide(conn,i){
 function broadcast(obj){ conns.forEach(c=>{ try{c.send(obj);}catch(e){} }); }
 function broadcastNewDeck(){ conns.forEach(c=>pushDeck(c)); }
 
+/* ---- file input ---- */
 const drop=$("#drop"), fileInput=$("#file");
 drop.addEventListener("click",()=>fileInput.click());
 $("#addMore").addEventListener("click",()=>fileInput.click());
@@ -366,6 +489,7 @@ $("#prevBtn").addEventListener("click",()=>gotoHost(idx-1));
 document.querySelectorAll("[data-next]").forEach(z=>z.addEventListener("click",()=>gotoHost(idx+1)));
 document.querySelectorAll("[data-prev]").forEach(z=>z.addEventListener("click",()=>gotoHost(idx-1)));
 
+/* share / copy */
 $("#copyCode").addEventListener("click",()=>{ navigator.clipboard?.writeText(myCode); toast("Kod disalin"); });
 $("#shareLink").addEventListener("click",async()=>{
   const url=shareUrl(myCode);
@@ -373,16 +497,22 @@ $("#shareLink").addEventListener("click",async()=>{
   else { navigator.clipboard?.writeText(url); toast("Link disalin"); }
 });
 
+/* =========================================================
+   VIEWER
+   ========================================================= */
 let vpeer=null, vconn=null, vslides=[], vbuf={}, vtotal=0, vidx=0;
+
 function setViewStatus(state){
   const el=$("#viewStatus");
   const map={ connecting:["","Menyambung…"], live:["ok","Langsung"], lost:["","Sambungan putus"] };
   const [cls,txt]=map[state]||["",state];
   el.className="pill"+(cls?" "+cls:""); el.innerHTML=`<span class="ring"></span>${txt}`;
 }
+
 $("#joinCode").addEventListener("input",e=>{ e.target.value=e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,""); });
 $("#joinCode").addEventListener("keydown",e=>{ if(e.key==="Enter") joinSession(); });
 $("#joinBtn").addEventListener("click",joinSession);
+
 function joinSession(){
   const code=$("#joinCode").value.trim().toUpperCase();
   $("#viewErr").textContent="";
@@ -392,6 +522,7 @@ function joinSession(){
   setViewStatus("connecting");
   vslides=[]; vbuf={}; vtotal=0; vidx=0;
   $("#viewImg").src=""; $("#viewWait").classList.remove("hidden"); $("#viewCounter").classList.add("hidden");
+
   if(vpeer){ try{vpeer.destroy();}catch(e){} }
   vpeer=new Peer({config:ICE,debug:1});
   vpeer.on("open",()=>connectToHost(code));
@@ -404,6 +535,7 @@ function connectToHost(code){
   vconn=vpeer.connect(PREFIX+code,{reliable:true});
   let opened=false;
   const timer=setTimeout(()=>{ if(!opened) showJoinError("Tak dapat menyambung. Cuba rangkaian lain / pastikan presenter aktif."); },12000);
+
   vconn.on("open",()=>{ opened=true; clearTimeout(timer); setViewStatus("live"); });
   vconn.on("data",handleViewData);
   vconn.on("close",()=>{ setViewStatus("lost"); $("#viewWaitTxt").textContent="Presenter telah menamatkan sesi."; $("#viewWait").classList.remove("hidden"); });
@@ -438,6 +570,9 @@ function renderView(){
   }
 }
 
+/* =========================================================
+   shared: keyboard, swipe, cleanup, deep-link
+   ========================================================= */
 document.addEventListener("keydown",e=>{
   if(screens.host.classList.contains("hidden")) return;
   if($("#hostStage").classList.contains("hidden")) return;
@@ -454,12 +589,32 @@ document.addEventListener("keydown",e=>{
   },{passive:true});
 })();
 
+/* ---------- immersive / fullscreen ---------- */
+function setImmersive(on){
+  document.body.classList.toggle("immersive",on);
+  try{
+    if(on){ const el=document.documentElement; if(el.requestFullscreen) el.requestFullscreen().catch(()=>{}); }
+    else if(document.fullscreenElement && document.exitFullscreen){ document.exitFullscreen().catch(()=>{}); }
+  }catch(e){}
+}
+function toggleImmersive(){ setImmersive(!document.body.classList.contains("immersive")); }
+$("#fsHost").addEventListener("click",toggleImmersive);
+$("#fsView").addEventListener("click",toggleImmersive);
+$("#fsExit").addEventListener("click",()=>setImmersive(false));
+$("#viewStage").querySelector(".stage").addEventListener("click",e=>{
+  if(e.target.closest(".tapzone")) return;
+  if($("#viewImg").src) toggleImmersive();
+});
+document.addEventListener("fullscreenchange",()=>{ if(!document.fullscreenElement) document.body.classList.remove("immersive"); });
+
 function cleanup(){
+  setImmersive(false);
   try{peer&&peer.destroy();}catch(e){} peer=null; conns.clear();
   try{vpeer&&vpeer.destroy();}catch(e){} vpeer=null; vconn=null;
   slides=[]; vslides=[]; idx=0;
 }
 
+/* auto-join from ?room=CODE&view=1 */
 (function deeplink(){
   const p=new URLSearchParams(location.search);
   const room=(p.get("room")||"").toUpperCase().replace(/[^A-Z0-9]/g,"");
