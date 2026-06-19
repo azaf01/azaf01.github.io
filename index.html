@@ -183,6 +183,7 @@
     color:#fff;display:none;place-items:center;backdrop-filter:blur(6px)}
   .fs-ctrl:active{transform:scale(.92)}
   .fs-ctrl.l{left:12px}.fs-ctrl.r{right:12px}
+  .fs-ctrl.r2{right:12px;top:calc(58px + env(safe-area-inset-top))}
   body.immersive .fs-ctrl{display:grid}
 
   /* ---------- Landscape phones ---------- */
@@ -238,6 +239,7 @@
     <div style="display:flex;gap:8px;align-items:center">
       <span class="pill" id="hostViewers"><span class="ring"></span>0</span>
       <span class="pill live" id="hostLive"><span class="ring"></span>LIVE</span>
+      <button class="topbtn" id="showCodeBtn" title="Tunjuk kod sesi & QR" aria-label="Kod sesi"><svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor"><path d="M3 3h7v7H3V3zm2 2v3h3V5H5zm9-2h7v7h-7V3zm2 2v3h3V5h-3zM3 14h7v7H3v-7zm2 2v3h3v-3H5zm11-2h2v2h-2v-2zm3 0h2v2h-2v-2zm-3 3h2v2h-2v-2zm3 0h2v2h-2v-2zm-3 3h2v2h-2v-2zm3 0h2v2h-2v-2z"/></svg></button>
       <button class="topbtn" id="fsHost" title="Skrin penuh" aria-label="Skrin penuh"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg></button>
     </div>
   </div>
@@ -277,7 +279,6 @@
     <div class="controls">
       <div class="thumbs" id="thumbs"></div>
       <div class="tool-row">
-        <button class="toolbtn" id="showCodeBtn" title="Kod sesi & QR" aria-label="Kod sesi"><svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor"><path d="M3 3h7v7H3V3zm2 2v3h3V5H5zm9-2h7v7h-7V3zm2 2v3h3V5h-3zM3 14h7v7H3v-7zm2 2v3h3v-3H5zm11-2h2v2h-2v-2zm3 0h2v2h-2v-2zm-3 3h2v2h-2v-2zm3 0h2v2h-2v-2zm-3 3h2v2h-2v-2zm3 0h2v2h-2v-2z"/></svg></button>
         <button class="toolbtn" id="ptrBtn" title="Pointer" aria-label="Pointer"><svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor"><circle cx="12" cy="12" r="5"/></svg></button>
         <button class="toolbtn" id="zoomOut" title="Zoom keluar" aria-label="Zoom keluar">&minus;</button>
         <button class="toolbtn" id="zoomIn" title="Zoom masuk" aria-label="Zoom masuk">+</button>
@@ -331,6 +332,7 @@
 
 <button class="fs-ctrl l" data-home title="Kembali" aria-label="Kembali"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
 <button class="fs-ctrl r" id="fsExit" title="Keluar skrin penuh" aria-label="Keluar skrin penuh"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></svg></button>
+<button class="fs-ctrl r2" id="fsCode" title="Kod sesi" aria-label="Kod sesi" style="display:none"><svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor"><path d="M3 3h7v7H3V3zm2 2v3h3V5H5zm9-2h7v7h-7V3zm2 2v3h3V5h-3zM3 14h7v7H3v-7zm2 2v3h3v-3H5zm11-2h2v2h-2v-2zm3 0h2v2h-2v-2zm-3 3h2v2h-2v-2zm3 0h2v2h-2v-2zm-3 3h2v2h-2v-2zm3 0h2v2h-2v-2z"/></svg></button>
 <div class="modal" id="codeModal">
   <div class="modal-card">
     <button class="modal-x" id="modalClose" aria-label="Tutup"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>
@@ -691,6 +693,7 @@ $("#shareLink").addEventListener("click",doShare);
 function openCodeModal(){ $("#modalCode").textContent=myCode||"\u00B7\u00B7\u00B7\u00B7\u00B7"; renderQR($("#qrModal"),shareUrl(myCode)); $("#codeModal").classList.add("on"); }
 function closeCodeModal(){ $("#codeModal").classList.remove("on"); }
 $("#showCodeBtn").addEventListener("click",openCodeModal);
+$("#fsCode").addEventListener("click",openCodeModal);
 $("#modalClose").addEventListener("click",closeCodeModal);
 $("#modalCloseBtn").addEventListener("click",closeCodeModal);
 $("#modalCopy").addEventListener("click",()=>{ try{navigator.clipboard.writeText(myCode);}catch(e){} toast("Kod disalin"); });
@@ -771,6 +774,7 @@ function positionViewerLaser(){
    ========================================================= */
 function setImmersive(on){
   document.body.classList.toggle("immersive",on);
+  $("#fsCode").style.display = (on && !screens.host.classList.contains("hidden")) ? "grid" : "none";
   try{ if(on){ const el=document.documentElement; if(el.requestFullscreen) el.requestFullscreen().catch(()=>{}); }
        else if(document.fullscreenElement && document.exitFullscreen){ document.exitFullscreen().catch(()=>{}); } }catch(e){}
   setTimeout(reapplyViews,60);
