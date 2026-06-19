@@ -137,8 +137,8 @@
   .codebox{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;text-align:center;margin-bottom:14px}
   .codebox .lbl{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:700}
   .code-chars{font-family:var(--mono);font-weight:700;font-size:30px;letter-spacing:7px;margin:9px 0 4px;color:#fff}
-  #qr{display:inline-block;margin-top:12px;padding:9px;background:#fff;border-radius:12px;line-height:0}
-  #qr img,#qr canvas{display:block;border-radius:4px}
+  #qr,#qrModal{display:inline-block;margin-top:12px;padding:9px;background:#fff;border-radius:12px;line-height:0}
+  #qr img,#qr canvas,#qrModal img,#qrModal canvas{display:block;border-radius:4px}
   .share-row{display:flex;gap:9px;margin-top:14px}
   .share-row .btn{flex:1}
 
@@ -165,6 +165,14 @@
     background:var(--surface-2);border:1px solid var(--border);color:var(--text);padding:10px 16px;border-radius:999px;
     font-size:13px;font-weight:600;opacity:0;pointer-events:none;transition:.25s;z-index:60;box-shadow:var(--shadow)}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  /* ---------- Code modal ---------- */
+  .modal{position:fixed;inset:0;z-index:70;display:none;align-items:center;justify-content:center;padding:22px;background:rgba(8,10,14,.66);backdrop-filter:blur(4px)}
+  .modal.on{display:flex}
+  .modal-card{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px 22px 18px;width:100%;max-width:340px;text-align:center;box-shadow:var(--shadow);max-height:92dvh;overflow-y:auto}
+  .modal-card .lbl{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:700}
+  .modal-x{position:absolute;top:10px;right:10px;width:30px;height:30px;border-radius:8px;display:grid;place-items:center;background:var(--surface-2);border:1px solid var(--border);color:var(--muted)}
+  .modal-x:active{transform:scale(.92)}
 
   .backlink{background:none;border:none;color:var(--muted);font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:6px}
 
@@ -269,6 +277,7 @@
     <div class="controls">
       <div class="thumbs" id="thumbs"></div>
       <div class="tool-row">
+        <button class="toolbtn" id="showCodeBtn" title="Kod sesi & QR" aria-label="Kod sesi"><svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor"><path d="M3 3h7v7H3V3zm2 2v3h3V5H5zm9-2h7v7h-7V3zm2 2v3h3V5h-3zM3 14h7v7H3v-7zm2 2v3h3v-3H5zm11-2h2v2h-2v-2zm3 0h2v2h-2v-2zm-3 3h2v2h-2v-2zm3 0h2v2h-2v-2zm-3 3h2v2h-2v-2zm3 0h2v2h-2v-2z"/></svg></button>
         <button class="toolbtn" id="ptrBtn" title="Pointer" aria-label="Pointer"><svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor"><circle cx="12" cy="12" r="5"/></svg></button>
         <button class="toolbtn" id="zoomOut" title="Zoom keluar" aria-label="Zoom keluar">&minus;</button>
         <button class="toolbtn" id="zoomIn" title="Zoom masuk" aria-label="Zoom masuk">+</button>
@@ -322,6 +331,20 @@
 
 <button class="fs-ctrl l" data-home title="Kembali" aria-label="Kembali"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
 <button class="fs-ctrl r" id="fsExit" title="Keluar skrin penuh" aria-label="Keluar skrin penuh"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></svg></button>
+<div class="modal" id="codeModal">
+  <div class="modal-card">
+    <button class="modal-x" id="modalClose" aria-label="Tutup"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>
+    <div class="lbl">Kod sesi</div>
+    <div class="code-chars" id="modalCode">&middot;&middot;&middot;&middot;&middot;</div>
+    <div id="qrModal"></div>
+    <p class="sub" style="margin:14px 0 0">Imbas QR atau masukkan kod ini untuk sertai sesi langsung.</p>
+    <div class="share-row">
+      <button class="btn" id="modalCopy">Salin kod</button>
+      <button class="btn primary" id="modalShare">Kongsi link</button>
+    </div>
+    <button class="btn ghost" id="modalCloseBtn" style="width:100%;margin-top:10px">Tutup</button>
+  </div>
+</div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -436,7 +459,7 @@ function createPeer(attempt=0){
   myCode=genCode(); $("#hostCode").textContent="\u00B7\u00B7\u00B7\u00B7\u00B7"; $("#hostLive").classList.add("hidden");
   if(peer){ try{peer.destroy();}catch(e){} }
   peer=new Peer(PREFIX+myCode,{config:ICE,debug:1});
-  peer.on("open",()=>{ $("#hostCode").textContent=myCode; $("#hostLive").classList.remove("hidden"); renderQR(shareUrl(myCode)); });
+  peer.on("open",()=>{ $("#hostCode").textContent=myCode; $("#hostLive").classList.remove("hidden"); renderQR($("#qr"),shareUrl(myCode)); });
   peer.on("connection",conn=>{
     conn.on("open",()=>{ conns.set(conn.peer,conn); setHostUI(); pushDeck(conn); toast("Viewer baru menyertai"); });
     conn.on("close",()=>{ conns.delete(conn.peer); setHostUI(); });
@@ -448,7 +471,7 @@ function createPeer(attempt=0){
     $("#hostErr").textContent="Ralat sambungan: "+err.type+". Cuba semula.";
   });
 }
-function renderQR(url){ const el=$("#qr"); el.innerHTML="";
+function renderQR(el,url){ el.innerHTML="";
   try{ new QRCode(el,{text:url,width:148,height:148,colorDark:"#0E1116",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.M}); }catch(e){} }
 
 /* ---- send deck ---- */
@@ -657,11 +680,23 @@ function handleTap(sx){
 
 /* share / copy */
 $("#copyCode").addEventListener("click",()=>{ try{navigator.clipboard.writeText(myCode);}catch(e){} toast("Kod disalin"); });
-$("#shareLink").addEventListener("click",async()=>{
+async function doShare(){
   const url=shareUrl(myCode);
   if(navigator.share){ try{ await navigator.share({title:"Sertai persembahan langsung",text:"Kod: "+myCode,url}); }catch(e){} }
   else { try{navigator.clipboard.writeText(url);}catch(e){} toast("Link disalin"); }
-});
+}
+$("#shareLink").addEventListener("click",doShare);
+
+/* ---- session-code modal (view code again while presenting) ---- */
+function openCodeModal(){ $("#modalCode").textContent=myCode||"\u00B7\u00B7\u00B7\u00B7\u00B7"; renderQR($("#qrModal"),shareUrl(myCode)); $("#codeModal").classList.add("on"); }
+function closeCodeModal(){ $("#codeModal").classList.remove("on"); }
+$("#showCodeBtn").addEventListener("click",openCodeModal);
+$("#modalClose").addEventListener("click",closeCodeModal);
+$("#modalCloseBtn").addEventListener("click",closeCodeModal);
+$("#modalCopy").addEventListener("click",()=>{ try{navigator.clipboard.writeText(myCode);}catch(e){} toast("Kod disalin"); });
+$("#modalShare").addEventListener("click",doShare);
+$("#codeModal").addEventListener("click",e=>{ if(e.target===$("#codeModal")) closeCodeModal(); });
+
 $("#nextBtn").addEventListener("click",()=>gotoHost(idx+1));
 $("#prevBtn").addEventListener("click",()=>gotoHost(idx-1));
 
@@ -762,7 +797,7 @@ document.addEventListener("keydown",e=>{
 });
 
 function cleanup(){
-  setImmersive(false);
+  setImmersive(false); closeCodeModal();
   try{peer&&peer.destroy();}catch(e){} peer=null; conns.clear();
   try{vpeer&&vpeer.destroy();}catch(e){} vpeer=null; vconn=null;
   slides=[]; vslides=[]; idx=0; pointerMode=false; $("#ptrBtn").classList.remove("active");
