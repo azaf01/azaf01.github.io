@@ -114,6 +114,11 @@
     background:radial-gradient(circle,rgba(255,60,60,.95) 0%,rgba(255,60,60,.5) 38%,rgba(255,60,60,0) 70%);
     box-shadow:0 0 14px 5px rgba(255,60,60,.55);display:none}
   .laser.on{display:block}
+  .followbtn{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);z-index:9;display:none;
+    align-items:center;gap:6px;font-size:12px;font-weight:700;padding:8px 14px;border-radius:999px;
+    background:var(--accent);color:#06231f;border:none;box-shadow:0 6px 20px rgba(0,0,0,.45)}
+  .followbtn:active{transform:translateX(-50%) scale(.96)}
+  .followbtn.on{display:inline-flex}
 
   /* ---------- Host controls ---------- */
   .controls{border-top:1px solid var(--border);background:var(--surface);padding:10px 12px;padding-bottom:calc(10px + env(safe-area-inset-bottom))}
@@ -326,6 +331,7 @@
         <div id="viewWaitTxt">Menunggu presenter&hellip;</div>
       </div>
       <div class="counter hidden" id="viewCounter">1 / 1</div>
+      <button class="followbtn" id="followBtn"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.5 15a9 9 0 1 0 2.1-9.4L1 10"/></svg>Ikut presenter</button>
     </div>
   </div>
 </section>
@@ -707,6 +713,7 @@ $("#prevBtn").addEventListener("click",()=>gotoHost(idx-1));
    VIEWER
    ========================================================= */
 let vpeer=null, vconn=null, vslides=[], vbuf={}, vtotal=0, vidx=0, vview={zoom:1,cx:.5,cy:.5};
+let vfollow=true, lastHostView={zoom:1,cx:.5,cy:.5};
 const viewImg=$("#viewImg"), viewWrap=$("#viewWrap"), viewLaser=$("#viewLaser");
 
 function setViewStatus(state){
@@ -722,7 +729,7 @@ function joinSession(){
   const code=$("#joinCode").value.trim().toUpperCase(); $("#viewErr").textContent="";
   if(code.length!==5){ $("#viewErr").textContent="Kod mesti 5 aksara."; return; }
   $("#viewJoin").classList.add("hidden"); $("#viewStage").classList.remove("hidden"); setViewStatus("connecting");
-  vslides=[]; vbuf={}; vtotal=0; vidx=0; vview={zoom:1,cx:.5,cy:.5};
+  vslides=[]; vbuf={}; vtotal=0; vidx=0; vview={zoom:1,cx:.5,cy:.5}; vfollow=true; lastHostView={zoom:1,cx:.5,cy:.5};
   viewImg.src=""; viewLaser.classList.remove("on"); $("#viewWait").classList.remove("hidden"); $("#viewCounter").classList.add("hidden");
   if(vpeer){ try{vpeer.destroy();}catch(e){} }
   vpeer=new Peer({config:ICE,debug:1});
@@ -746,8 +753,8 @@ function handleViewData(m){
     case "sb": vbuf[m.i]=new Array(m.n).fill(""); break;
     case "sc": if(vbuf[m.i]) vbuf[m.i][m.k]=m.d; break;
     case "se": if(vbuf[m.i]){ vslides[m.i]=vbuf[m.i].join(""); delete vbuf[m.i]; if(m.i===vidx) renderView(); } break;
-    case "go": vidx=m.index; vview={zoom:1,cx:.5,cy:.5}; viewLaser.classList.remove("on"); renderView(); break;
-    case "view": vview={zoom:m.zoom,cx:m.cx,cy:m.cy}; applyView(viewImg,viewWrap,vview); positionViewerLaser(); break;
+    case "go": vidx=m.index; vview={zoom:1,cx:.5,cy:.5}; vfollow=true; lastHostView={zoom:1,cx:.5,cy:.5}; viewLaser.classList.remove("on"); renderView(); applyViewerView(); break;
+    case "view": lastHostView={zoom:m.zoom,cx:m.cx,cy:m.cy}; if(vfollow){ vview={zoom:m.zoom,cx:m.cx,cy:m.cy}; applyViewerView(); } else updateFollowBtn(); break;
     case "ptr":
       if(m.on){ viewLaser._x=m.x; viewLaser._y=m.y; positionViewerLaser(); viewLaser.classList.add("on"); }
       else viewLaser.classList.remove("on");
@@ -761,7 +768,56 @@ function renderView(){
     $("#viewCounter").textContent=(vidx+1)+" / "+vtotal;
   }else{ $("#viewWait").classList.remove("hidden"); $("#viewWaitTxt").textContent="Memuatkan slaid\u2026"; }
 }
-viewImg.addEventListener("load",()=>{ applyView(viewImg,viewWrap,vview); positionViewerLaser(); });
+viewImg.addEventListener("load",()=>{ applyViewerView(); });
+function applyViewerView(){ applyView(viewImg,viewWrap,vview); positionViewerLaser(); updateFollowBtn(); }
+function updateFollowBtn(){ $("#followBtn").classList.toggle("on", !vfollow && !!viewImg.src); }
+function vClamp(){
+  if(vview.zoom<=1.001){ vview.zoom=1; vview.cx=.5; vview.cy=.5; return; }
+  const r=viewWrap.getBoundingClientRect();
+  const base=fitBase(viewImg.naturalWidth||16,viewImg.naturalHeight||9,r.width,r.height);
+  const sw=base.w*vview.zoom, sh=base.h*vview.zoom;
+  const hx=Math.min(.5,(r.width/2)/sw), hy=Math.min(.5,(r.height/2)/sh);
+  vview.cx=clamp(vview.cx,hx,1-hx); vview.cy=clamp(vview.cy,hy,1-hy);
+}
+function vZoomAt(sx,sy,nz){
+  nz=clamp(nz,1,6); const r=viewWrap.getBoundingClientRect();
+  const sw0=viewImg.offsetWidth||1, sh0=viewImg.offsetHeight||1;
+  const fx=(sx-r.left-viewImg.offsetLeft)/sw0, fy=(sy-r.top-viewImg.offsetTop)/sh0;
+  const base=fitBase(viewImg.naturalWidth||16,viewImg.naturalHeight||9,r.width,r.height);
+  const sw=base.w*nz, sh=base.h*nz;
+  vview.zoom=nz; vview.cx=fx-((sx-r.left)-r.width/2)/sw; vview.cy=fy-((sy-r.top)-r.height/2)/sh;
+  if(nz<=1.001){ vview.zoom=1; vview.cx=.5; vview.cy=.5; }
+  vfollow=(vview.zoom<=1.001);  /* zoom keluar penuh -> ikut presenter semula */
+  vClamp(); applyViewerView();
+}
+function vPanBy(dx,dy){ const sw=viewImg.offsetWidth||1, sh=viewImg.offsetHeight||1; vview.cx-=dx/sw; vview.cy-=dy/sh; vfollow=false; vClamp(); applyViewerView(); }
+$("#followBtn").addEventListener("click",()=>{ vview={zoom:lastHostView.zoom,cx:lastHostView.cx,cy:lastHostView.cy}; vfollow=true; vClamp(); applyViewerView(); });
+
+/* viewer gestures: pinch zoom + drag pan (local), tap = skrin penuh */
+(function viewerGestures(){
+  const wrap=viewWrap; const pts=new Map(); let g=null;
+  wrap.addEventListener("pointerdown",e=>{
+    wrap.setPointerCapture(e.pointerId); pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(pts.size===2){ const v=[...pts.values()]; g={type:"pinch",startDist:Math.hypot(v[0].x-v[1].x,v[0].y-v[1].y)||1,startZoom:vview.zoom}; }
+    else g={type:"single",startX:e.clientX,startY:e.clientY,lastX:e.clientX,lastY:e.clientY,moved:false};
+  });
+  wrap.addEventListener("pointermove",e=>{
+    if(!pts.has(e.pointerId)) return; pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(g&&g.type==="pinch"&&pts.size>=2){ const v=[...pts.values()]; const d=Math.hypot(v[0].x-v[1].x,v[0].y-v[1].y); vZoomAt((v[0].x+v[1].x)/2,(v[0].y+v[1].y)/2,g.startZoom*(d/g.startDist)); }
+    else if(g&&g.type==="single"){ const dx=e.clientX-g.lastX,dy=e.clientY-g.lastY; g.lastX=e.clientX; g.lastY=e.clientY;
+      if(Math.abs(e.clientX-g.startX)>6||Math.abs(e.clientY-g.startY)>6) g.moved=true;
+      if(vview.zoom>1.001) vPanBy(dx,dy); }
+  });
+  function end(e){
+    const wasSingle=g&&g.type==="single"; const info=wasSingle?Object.assign({},g):null;
+    pts.delete(e.pointerId);
+    if(pts.size===0){ if(wasSingle && !info.moved && viewImg.src) toggleImmersive(); g=null; }
+    else if(pts.size===1){ const p=[...pts.values()][0]; g={type:"single",startX:p.x,startY:p.y,lastX:p.x,lastY:p.y,moved:true}; }
+  }
+  wrap.addEventListener("pointerup",end);
+  wrap.addEventListener("pointercancel",end);
+  wrap.addEventListener("wheel",e=>{ e.preventDefault(); vZoomAt(e.clientX,e.clientY,vview.zoom*(e.deltaY<0?1.12:1/1.12)); },{passive:false});
+})();
 function positionViewerLaser(){
   if(viewLaser._x==null) return;
   const sw=viewImg.offsetWidth, sh=viewImg.offsetHeight;
@@ -783,12 +839,11 @@ function toggleImmersive(){ setImmersive(!document.body.classList.contains("imme
 $("#fsHost").addEventListener("click",toggleImmersive);
 $("#fsView").addEventListener("click",toggleImmersive);
 $("#fsExit").addEventListener("click",()=>setImmersive(false));
-$("#viewStageArea").addEventListener("click",e=>{ if($("#viewImg").src) toggleImmersive(); });
 document.addEventListener("fullscreenchange",()=>{ if(!document.fullscreenElement) document.body.classList.remove("immersive"); reapplyViews(); });
 
 function reapplyViews(){
   if(!screens.host.classList.contains("hidden") && !$("#hostStage").classList.contains("hidden")) applyHostView();
-  if(!screens.view.classList.contains("hidden") && !$("#viewStage").classList.contains("hidden")){ applyView(viewImg,viewWrap,vview); positionViewerLaser(); }
+  if(!screens.view.classList.contains("hidden") && !$("#viewStage").classList.contains("hidden")){ applyViewerView(); }
 }
 let rsTimer=null;
 window.addEventListener("resize",()=>{ clearTimeout(rsTimer); rsTimer=setTimeout(reapplyViews,120); });
