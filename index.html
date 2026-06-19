@@ -10,10 +10,21 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 
-<!-- Libraries -->
+<!-- Core libs -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<!-- PowerPoint (.pptx) support — best effort -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip-utils/0.1.0/jszip-utils.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.min.js"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/nvd3/1.8.6/nv.d3.min.css" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/nvd3/1.8.6/nv.d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<link href="https://cdn.jsdelivr.net/gh/meshesha/PPTXjs@master/css/pptxjs.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/gh/meshesha/PPTXjs@master/js/pptxjs.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/meshesha/PPTXjs@master/js/divs2slides.js"></script>
 
 <style>
   :root{
@@ -45,7 +56,7 @@
   .brand .dot{width:9px;height:9px;border-radius:3px;background:var(--accent);box-shadow:0 0 14px var(--accent)}
   .brand small{font-weight:600;color:var(--muted);font-size:10px;letter-spacing:.12em;text-transform:uppercase}
 
-  .topbtn{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;font-size:15px;
+  .topbtn{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;
     background:var(--surface-2);border:1px solid var(--border);color:var(--text)}
   .topbtn:active{transform:scale(.94)}
 
@@ -88,28 +99,38 @@
   .btn:disabled{opacity:.4;pointer-events:none}
   .btn.icon{padding:11px 13px}
 
-  /* ---------- Stage (shared by host & viewer) ---------- */
-  .stage{flex:1;position:relative;background:#000;display:grid;place-items:center;overflow:hidden;min-height:0}
-  .stage img{max-width:100%;max-height:100%;width:auto;height:auto;display:block;user-select:none;-webkit-user-drag:none}
-  .stage .placeholder{position:absolute;inset:0;display:flex;flex-direction:column;gap:12px;align-items:center;justify-content:center;color:var(--muted);padding:28px;text-align:center}
+  /* ---------- Stage ---------- */
+  .stage{flex:1;position:relative;background:#000;overflow:hidden;min-height:0}
+  .zoomwrap{position:absolute;inset:0;overflow:hidden;touch-action:none}
+  .zoomwrap img{position:absolute;left:0;top:0;display:block;user-select:none;-webkit-user-drag:none;will-change:left,top,width,height}
+  .stage .placeholder{position:absolute;inset:0;display:flex;flex-direction:column;gap:12px;align-items:center;justify-content:center;color:var(--muted);padding:28px;text-align:center;z-index:6}
   .stage .placeholder .big{font-size:38px;opacity:.5}
-  .counter{position:absolute;left:12px;bottom:12px;font-family:var(--mono);font-size:12px;font-weight:700;
+  .counter{position:absolute;left:12px;bottom:12px;font-family:var(--mono);font-size:12px;font-weight:700;z-index:7;
     background:rgba(0,0,0,.55);border:1px solid var(--border);padding:5px 10px;border-radius:999px;backdrop-filter:blur(6px)}
-  .stage .tapzone{position:absolute;top:0;bottom:0;width:30%;z-index:5}
-  .stage .tapzone.l{left:0}.stage .tapzone.r{right:0}
+  .zoom-badge{position:absolute;right:12px;bottom:12px;font-family:var(--mono);font-size:11px;font-weight:700;z-index:7;
+    background:rgba(0,0,0,.55);border:1px solid var(--border);padding:5px 9px;border-radius:999px;backdrop-filter:blur(6px);display:none}
+  .zoom-badge.on{display:block}
+  .laser{position:absolute;width:24px;height:24px;border-radius:50%;pointer-events:none;transform:translate(-50%,-50%);z-index:8;
+    background:radial-gradient(circle,rgba(255,60,60,.95) 0%,rgba(255,60,60,.5) 38%,rgba(255,60,60,0) 70%);
+    box-shadow:0 0 14px 5px rgba(255,60,60,.55);display:none}
+  .laser.on{display:block}
 
   /* ---------- Host controls ---------- */
   .controls{border-top:1px solid var(--border);background:var(--surface);padding:10px 12px;padding-bottom:calc(10px + env(safe-area-inset-bottom))}
   .nav-row{display:flex;align-items:center;gap:8px}
   .nav-row .btn{flex:1}
-  .thumbs{display:flex;gap:7px;overflow-x:auto;padding:10px 2px 4px;scrollbar-width:thin;scroll-behavior:smooth}
+  .tool-row{display:flex;gap:7px;justify-content:center;margin-bottom:8px}
+  .toolbtn{flex:none;width:42px;height:34px;border-radius:9px;display:grid;place-items:center;font-weight:700;font-size:16px;
+    background:var(--surface-2);border:1px solid var(--border);color:var(--text)}
+  .toolbtn:active{transform:scale(.94)}
+  .toolbtn.active{background:rgba(255,77,77,.16);border-color:rgba(255,77,77,.55);color:#fff}
+  .thumbs{display:flex;gap:7px;overflow-x:auto;padding:4px 2px 8px;scrollbar-width:thin;scroll-behavior:smooth}
   .thumbs::-webkit-scrollbar{height:5px}.thumbs::-webkit-scrollbar-thumb{background:var(--border);border-radius:9px}
   .thumb{flex:none;width:64px;height:40px;border-radius:7px;overflow:hidden;border:2px solid var(--border);background:#000;opacity:.65;transition:.15s}
   .thumb.active{border-color:var(--accent);opacity:1}
   .thumb img{width:100%;height:100%;object-fit:cover}
-  .empty-thumbs{color:var(--muted-2);font-size:12px;padding:10px 2px}
 
-  /* ---------- Sheets / setup panels ---------- */
+  /* ---------- Panels ---------- */
   .panel{padding:20px;max-width:440px;margin:0 auto;width:100%}
   .panel h2{font-size:18px;margin:0 0 6px;letter-spacing:-.4px}
   .panel .sub{color:var(--muted);font-size:13px;margin:0 0 18px;line-height:1.5}
@@ -156,14 +177,14 @@
   .fs-ctrl.l{left:12px}.fs-ctrl.r{right:12px}
   body.immersive .fs-ctrl{display:grid}
 
-  /* ---------- Landscape phones: slim chrome, bigger slide ---------- */
+  /* ---------- Landscape phones ---------- */
   @media (orientation:landscape) and (max-height:600px){
     .topbar{padding:7px 14px;padding-top:calc(7px + env(safe-area-inset-top))}
     .controls{padding:7px 12px;padding-bottom:calc(7px + env(safe-area-inset-bottom))}
     .thumbs{display:none}
     .btn{padding:8px 12px;font-size:13px}
-    .nav-row{gap:7px}
-    .counter{left:10px;bottom:10px}
+    .nav-row{gap:7px}.tool-row{margin-bottom:6px}
+    .counter,.zoom-badge{bottom:10px}
     #home{justify-content:flex-start;overflow-y:auto;padding:16px 22px;gap:14px}
     .hero h1{font-size:clamp(22px,5vw,30px);margin-bottom:6px}
     .hero p{font-size:12.5px}
@@ -182,21 +203,21 @@
 <section id="home">
   <div class="hero">
     <h1>Satu skrin,<br><span class="em">semua telefon.</span></h1>
-    <p>Kongsi slaid persembahan secara langsung. Presenter tukar slaid — semua viewer ikut serentak. iOS & Android.</p>
+    <p>Kongsi slaid secara langsung. Zoom, pan & pointer presenter — semua viewer ikut serentak. iOS & Android.</p>
   </div>
   <div class="choices">
     <button class="card-btn host" id="goHost">
-      <span class="ic">●</span>
+      <span class="ic">&#9679;</span>
       <span><span class="t">Hos persembahan</span><span class="s">Muat naik slaid & kawal sesi</span></span>
-      <span class="arr">→</span>
+      <span class="arr">&rarr;</span>
     </button>
     <button class="card-btn join" id="goJoin">
-      <span class="ic">⇲</span>
+      <span class="ic">&#8690;</span>
       <span><span class="t">Sertai sesi</span><span class="s">Masukkan kod untuk tonton langsung</span></span>
-      <span class="arr">→</span>
+      <span class="arr">&rarr;</span>
     </button>
   </div>
-  <p class="home-foot">Peer-to-peer (WebRTC) — tiada server, slaid pergi terus antara telefon. Untuk pengalaman terbaik, host fail ini di mana-mana (Synology / static host) & buka link pada dua telefon.</p>
+  <p class="home-foot">Peer-to-peer (WebRTC) — tiada server, slaid pergi terus antara telefon. Untuk pengalaman terbaik, host fail ini (Synology / GitHub Pages) & buka link pada dua telefon.</p>
 </section>
 
 <!-- ============ HOST ============ -->
@@ -213,47 +234,50 @@
     </div>
   </div>
 
-  <!-- setup (before slides) -->
+  <!-- setup -->
   <div id="hostSetup" class="panel" style="flex:1;overflow-y:auto">
-    <button class="backlink" data-home>← Kembali</button>
-    <h2 style="margin-top:16px">Kod sesi anda</h2>
+    <h2 style="margin-top:6px">Kod sesi anda</h2>
     <p class="sub">Kongsikan kod atau QR ini. Sesiapa yang sertai akan nampak slaid anda secara langsung.</p>
-
     <div class="codebox">
       <div class="lbl">Kod sesi</div>
-      <div class="code-chars" id="hostCode">·····</div>
+      <div class="code-chars" id="hostCode">&middot;&middot;&middot;&middot;&middot;</div>
       <div id="qr"></div>
     </div>
     <div class="share-row">
       <button class="btn" id="copyCode">Salin kod</button>
       <button class="btn primary" id="shareLink">Kongsi link</button>
     </div>
-
     <div style="height:22px"></div>
     <div class="dropzone" id="drop">
-      <div class="big">⬆</div>
-      <div><b>Pilih slaid</b> — PDF atau gambar</div>
-      <small>PDF akan jadi slaid automatik. Boleh pilih banyak gambar.</small>
+      <div class="big">&#8593;</div>
+      <div><b>Pilih slaid</b> — PowerPoint, PDF atau gambar</div>
+      <small>PPTX & PDF jadi slaid automatik. Boleh pilih banyak fail sekali.</small>
     </div>
-    <input type="file" id="file" accept="application/pdf,image/*" multiple class="hidden">
-    <div id="hostLoad" class="status-line hidden"><span class="spinner"></span><span id="hostLoadTxt">Memproses…</span></div>
+    <input type="file" id="file" accept="application/pdf,image/*,.pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation" multiple class="hidden">
+    <div id="hostLoad" class="status-line hidden"><span class="spinner"></span><span id="hostLoadTxt">Memproses&hellip;</span></div>
     <div class="err" id="hostErr"></div>
   </div>
 
   <!-- live stage -->
   <div id="hostStage" class="hidden" style="flex:1;display:flex;flex-direction:column;min-height:0">
-    <div class="stage">
-      <div class="tapzone l" data-prev></div>
-      <div class="tapzone r" data-next></div>
-      <img id="hostImg" alt="Slaid semasa">
+    <div class="stage" id="hostStageArea">
+      <div class="zoomwrap" id="hostWrap"><img id="hostImg" alt="Slaid semasa"></div>
+      <div class="laser" id="hostLaser"></div>
       <div class="counter" id="hostCounter">1 / 1</div>
+      <div class="zoom-badge" id="hostZoom">100%</div>
     </div>
     <div class="controls">
       <div class="thumbs" id="thumbs"></div>
+      <div class="tool-row">
+        <button class="toolbtn" id="ptrBtn" title="Pointer" aria-label="Pointer"><svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor"><circle cx="12" cy="12" r="5"/></svg></button>
+        <button class="toolbtn" id="zoomOut" title="Zoom keluar" aria-label="Zoom keluar">&minus;</button>
+        <button class="toolbtn" id="zoomIn" title="Zoom masuk" aria-label="Zoom masuk">+</button>
+        <button class="toolbtn" id="zoomReset" title="Reset paparan" aria-label="Reset"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 3 3 3 3 9"/><polyline points="15 3 21 3 21 9"/><polyline points="15 21 21 21 21 15"/><polyline points="9 21 3 21 3 15"/></svg></button>
+      </div>
       <div class="nav-row">
-        <button class="btn icon" id="prevBtn">‹ Sebelum</button>
-        <button class="btn icon" id="addMore" title="Tambah slaid">＋</button>
-        <button class="btn primary icon" id="nextBtn" style="flex:1.3">Seterusnya ›</button>
+        <button class="btn icon" id="prevBtn">&lsaquo; Sebelum</button>
+        <button class="btn icon" id="addMore" title="Tambah slaid">&#43;</button>
+        <button class="btn primary icon" id="nextBtn" style="flex:1.3">Seterusnya &rsaquo;</button>
       </div>
     </div>
   </div>
@@ -267,31 +291,29 @@
       <div class="brand"><span class="dot"></span>LiveDeck <small>Viewer</small></div>
     </div>
     <div style="display:flex;gap:8px;align-items:center">
-      <span class="pill" id="viewStatus"><span class="ring"></span>Menyambung…</span>
+      <span class="pill" id="viewStatus"><span class="ring"></span>Menyambung&hellip;</span>
       <button class="topbtn" id="fsView" title="Skrin penuh" aria-label="Skrin penuh"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg></button>
     </div>
   </div>
 
-  <!-- join form -->
   <div id="viewJoin" class="panel" style="flex:1;overflow-y:auto">
-    <button class="backlink" data-home>← Kembali</button>
-    <h2 style="margin-top:16px">Sertai sesi langsung</h2>
+    <h2 style="margin-top:6px">Sertai sesi langsung</h2>
     <p class="sub">Masukkan kod 5-aksara yang diberi oleh presenter.</p>
     <div class="field">
       <label for="joinCode">Kod sesi</label>
-      <input id="joinCode" class="code-input" maxlength="5" autocomplete="off" autocapitalize="characters" placeholder="·····">
+      <input id="joinCode" class="code-input" maxlength="5" autocomplete="off" autocapitalize="characters" placeholder="&middot;&middot;&middot;&middot;&middot;">
     </div>
     <button class="btn primary" id="joinBtn" style="width:100%">Sertai sekarang</button>
     <div class="err" id="viewErr"></div>
   </div>
 
-  <!-- live stage -->
   <div id="viewStage" class="hidden" style="flex:1;display:flex;flex-direction:column;min-height:0">
-    <div class="stage">
-      <img id="viewImg" alt="Slaid langsung">
+    <div class="stage" id="viewStageArea">
+      <div class="zoomwrap" id="viewWrap"><img id="viewImg" alt="Slaid langsung"></div>
+      <div class="laser" id="viewLaser"></div>
       <div class="placeholder" id="viewWait">
         <div class="spinner"></div>
-        <div id="viewWaitTxt">Menunggu presenter…</div>
+        <div id="viewWaitTxt">Menunggu presenter&hellip;</div>
       </div>
       <div class="counter hidden" id="viewCounter">1 / 1</div>
     </div>
@@ -304,29 +326,23 @@
 
 <script>
 "use strict";
-/* ---------------------------------------------------------
-   LiveDeck — P2P live presentation sharing (PeerJS / WebRTC)
-   --------------------------------------------------------- */
 const $ = (s,r=document)=>r.querySelector(s);
-const PREFIX = "livedeck-";            // namespaced peer ids on the public broker
-const ALPHA  = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no ambiguous chars
-const CHUNK  = 48*1024;                // slide data chunk size
-
+const PREFIX = "livedeck-";
+const ALPHA  = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+const CHUNK  = 48*1024;
 const ICE = { iceServers:[
   { urls:"stun:stun.l.google.com:19302" },
   { urls:"stun:global.stun.twilio.com:3478" },
   { urls:"turn:openrelay.metered.ca:80", username:"openrelayproject", credential:"openrelayproject" },
   { urls:"turn:openrelay.metered.ca:443", username:"openrelayproject", credential:"openrelayproject" }
 ]};
-
 if (window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc =
   "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
-/* ---------- screen switching ---------- */
+/* ---------- screens ---------- */
 const screens = { home:$("#home"), host:$("#host"), view:$("#view") };
 function show(name){ for(const k in screens) screens[k].classList.toggle("hidden", k!==name); }
 function toast(msg){ const t=$("#toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove("show"),2000); }
-
 document.querySelectorAll("[data-home]").forEach(b=>b.addEventListener("click",()=>{ cleanup(); show("home"); }));
 $("#goHost").addEventListener("click", startHost);
 $("#goJoin").addEventListener("click", ()=>{ show("view"); $("#joinCode").focus(); });
@@ -334,23 +350,19 @@ $("#goJoin").addEventListener("click", ()=>{ show("view"); $("#joinCode").focus(
 /* ---------- helpers ---------- */
 function genCode(){ let s=""; for(let i=0;i<5;i++) s+=ALPHA[Math.floor(Math.random()*ALPHA.length)]; return s; }
 function shareUrl(code){ const u=new URL(location.href); u.search=""; u.searchParams.set("room",code); u.searchParams.set("view","1"); return u.toString(); }
+function clamp(v,a,b){ return Math.min(b,Math.max(a,v)); }
+function fitBase(natW,natH,cw,ch){ const r=Math.min(cw/natW, ch/natH); return {w:natW*r, h:natH*r}; }
 
-// downscale any image file/bitmap source to a compact JPEG dataURL
-function toSlide(srcCanvasOrImg){
-  const max=1600;
-  let w=srcCanvasOrImg.width, h=srcCanvasOrImg.height;
+function toSlide(src){
+  const max=1600; let w=src.width||src.naturalWidth, h=src.height||src.naturalHeight;
   if(Math.max(w,h)>max){ const r=max/Math.max(w,h); w=Math.round(w*r); h=Math.round(h*r); }
   const c=document.createElement("canvas"); c.width=w; c.height=h;
-  c.getContext("2d").drawImage(srcCanvasOrImg,0,0,w,h);
+  c.getContext("2d").drawImage(src,0,0,w,h);
   return c.toDataURL("image/jpeg",0.72);
 }
 function loadImageFile(file){
-  return new Promise((res,rej)=>{
-    const img=new Image();
-    img.onload=()=>res(toSlide(img));
-    img.onerror=()=>rej(new Error("Gambar tak dapat dibaca"));
-    img.src=URL.createObjectURL(file);
-  });
+  return new Promise((res,rej)=>{ const img=new Image();
+    img.onload=()=>res(toSlide(img)); img.onerror=()=>rej(new Error("Gambar tak dapat dibaca")); img.src=URL.createObjectURL(file); });
 }
 async function loadPdfFile(file){
   const buf=await file.arrayBuffer();
@@ -367,37 +379,64 @@ async function loadPdfFile(file){
   }
   return out;
 }
+/* PowerPoint -> slide images (best effort via PPTXjs + html2canvas) */
+async function loadPptxFile(file,onProgress){
+  if(!window.jQuery || typeof jQuery.fn.pptxToHtml!=="function" || typeof html2canvas!=="function")
+    throw new Error("Penyokong PPTX gagal dimuatkan (semak sambungan internet).");
+  if(typeof JSZipUtils==="undefined" || typeof JSZip==="undefined")
+    throw new Error("Pustaka JSZip tak dimuatkan.");
+  const url=URL.createObjectURL(file);
+  const holder=document.createElement("div");
+  holder.style.cssText="position:fixed;left:-99999px;top:0;width:1280px;background:#fff;z-index:-1";
+  document.body.appendChild(holder);
+  try{
+    jQuery(holder).pptxToHtml({ pptxFileUrl:url, slidesScale:"100%", slideMode:false, keyBoardShortCut:false, mediaProcess:true });
+  }catch(e){ holder.remove(); URL.revokeObjectURL(url); throw new Error("PPTX gagal dibaca: "+((e&&e.message)||e)); }
+  await new Promise(resolve=>{
+    let last=-1, stable=0, tries=0;
+    const iv=setInterval(()=>{
+      const n=holder.querySelectorAll(".slide").length; tries++;
+      stable = (n>0 && n===last) ? stable+1 : 0; last=n;
+      if((stable>=5 && n>0) || tries>130){ clearInterval(iv); resolve(); }
+    },150);
+  });
+  const els=[...holder.querySelectorAll(".slide")];
+  if(!els.length){ holder.remove(); URL.revokeObjectURL(url); throw new Error("Tiada slaid dikesan dalam PPTX."); }
+  const out=[];
+  for(let i=0;i<els.length;i++){
+    if(onProgress) onProgress(i+1, els.length);
+    try{
+      const canvas=await html2canvas(els[i],{backgroundColor:"#ffffff",scale:1,useCORS:true,logging:false});
+      out.push(toSlide(canvas));
+    }catch(e){ /* skip a bad slide */ }
+  }
+  holder.remove(); URL.revokeObjectURL(url);
+  if(!out.length) throw new Error("Slaid PPTX tak dapat ditukar.");
+  return out;
+}
 
 /* =========================================================
    HOST
    ========================================================= */
 let peer=null, conns=new Map(), slides=[], idx=0, myCode="";
+let view={zoom:1,cx:.5,cy:.5}, pointerMode=false;
 
-function setHostUI(){
-  $("#hostViewers").innerHTML='<span class="ring"></span>'+conns.size;
-}
+const hostWrap=$("#hostWrap"), hostImg=$("#hostImg"), hostLaser=$("#hostLaser"),
+      hostStageArea=$("#hostStageArea"), hostZoom=$("#hostZoom");
+
+function setHostUI(){ $("#hostViewers").innerHTML='<span class="ring"></span>'+conns.size; }
 
 function startHost(){
   show("host");
-  $("#hostSetup").classList.remove("hidden");
-  $("#hostStage").classList.add("hidden");
-  $("#hostErr").textContent="";
-  slides=[]; idx=0;
+  $("#hostSetup").classList.remove("hidden"); $("#hostStage").classList.add("hidden");
+  $("#hostErr").textContent=""; slides=[]; idx=0; view={zoom:1,cx:.5,cy:.5}; pointerMode=false;
   createPeer();
 }
-
 function createPeer(attempt=0){
-  myCode=genCode();
-  $("#hostCode").textContent="·····";
-  $("#hostLive").classList.add("hidden");
+  myCode=genCode(); $("#hostCode").textContent="\u00B7\u00B7\u00B7\u00B7\u00B7"; $("#hostLive").classList.add("hidden");
   if(peer){ try{peer.destroy();}catch(e){} }
   peer=new Peer(PREFIX+myCode,{config:ICE,debug:1});
-
-  peer.on("open",()=>{
-    $("#hostCode").textContent=myCode;
-    $("#hostLive").classList.remove("hidden");
-    renderQR(shareUrl(myCode));
-  });
+  peer.on("open",()=>{ $("#hostCode").textContent=myCode; $("#hostLive").classList.remove("hidden"); renderQR(shareUrl(myCode)); });
   peer.on("connection",conn=>{
     conn.on("open",()=>{ conns.set(conn.peer,conn); setHostUI(); pushDeck(conn); toast("Viewer baru menyertai"); });
     conn.on("close",()=>{ conns.delete(conn.peer); setHostUI(); });
@@ -405,24 +444,21 @@ function createPeer(attempt=0){
   });
   peer.on("error",err=>{
     if(err.type==="unavailable-id" && attempt<5){ createPeer(attempt+1); return; }
-    if(err.type==="peer-unavailable") return; // viewer side concern
+    if(err.type==="peer-unavailable") return;
     $("#hostErr").textContent="Ralat sambungan: "+err.type+". Cuba semula.";
   });
 }
+function renderQR(url){ const el=$("#qr"); el.innerHTML="";
+  try{ new QRCode(el,{text:url,width:148,height:148,colorDark:"#0E1116",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.M}); }catch(e){} }
 
-function renderQR(url){
-  const el=$("#qr"); el.innerHTML="";
-  try{ new QRCode(el,{text:url,width:148,height:148,colorDark:"#0E1116",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.M}); }
-  catch(e){ el.textContent=""; }
-}
-
-/* send the whole deck to one viewer (current slide first) */
+/* ---- send deck ---- */
 function pushDeck(conn){
   if(!slides.length){ conn.send({t:"empty"}); return; }
   conn.send({t:"meta",total:slides.length,index:idx});
   const order=[idx]; for(let i=0;i<slides.length;i++) if(i!==idx) order.push(i);
   for(const i of order) sendSlide(conn,i);
   conn.send({t:"go",index:idx});
+  conn.send({t:"view",zoom:view.zoom,cx:view.cx,cy:view.cy});
 }
 function sendSlide(conn,i){
   const data=slides[i]; const n=Math.ceil(data.length/CHUNK);
@@ -445,183 +481,297 @@ fileInput.addEventListener("change",e=>{ if(e.target.files.length) handleFiles(e
 async function handleFiles(files){
   $("#hostErr").textContent="";
   const load=$("#hostLoad"), txt=$("#hostLoadTxt"); load.classList.remove("hidden");
-  const list=[...files], started=slides.length;
+  const list=[...files], started=slides.length; let notes=[];
   try{
     for(let n=0;n<list.length;n++){
-      const f=list[n]; txt.textContent=`Memproses ${n+1}/${list.length}…`;
-      if(f.type==="application/pdf"){ const pages=await loadPdfFile(f); slides.push(...pages); }
-      else if(f.type.startsWith("image/")){ slides.push(await loadImageFile(f)); }
+      const f=list[n]; const name=(f.name||"").toLowerCase();
+      const isPptx = name.endsWith(".pptx") || (f.type||"").includes("presentationml");
+      txt.textContent="Memproses "+(n+1)+"/"+list.length+"\u2026";
+      if(f.type==="application/pdf" || name.endsWith(".pdf")){ slides.push(...await loadPdfFile(f)); }
+      else if(isPptx){
+        try{ slides.push(...await loadPptxFile(f,(a,b)=>{ txt.textContent="PowerPoint: slaid "+a+"/"+b+"\u2026"; })); }
+        catch(err){ notes.push("PPTX: "+(err.message||"gagal")+" — cuba export ke PDF untuk hasil terbaik."); }
+      }
+      else if((f.type||"").startsWith("image/") || /\.(png|jpe?g|webp|gif)$/.test(name)){ slides.push(await loadImageFile(f)); }
     }
-    if(!slides.length){ $("#hostErr").textContent="Tiada slaid sah dijumpai."; return; }
+    if(!slides.length){ $("#hostErr").textContent = notes.join(" ") || "Tiada slaid sah dijumpai."; return; }
     if(started===0) idx=0;
-    enterHostStage();
-    broadcastNewDeck();
+    enterHostStage(); broadcastNewDeck();
+    if(notes.length) $("#hostErr").textContent=notes.join(" ");
   }catch(err){ $("#hostErr").textContent=err.message||"Gagal memproses fail."; }
   finally{ load.classList.add("hidden"); }
 }
 
 function enterHostStage(){
-  $("#hostSetup").classList.add("hidden");
-  $("#hostStage").classList.remove("hidden");
+  $("#hostSetup").classList.add("hidden"); $("#hostStage").classList.remove("hidden");
   renderThumbs(); renderHost();
 }
 function renderThumbs(){
   const wrap=$("#thumbs"); wrap.innerHTML="";
   slides.forEach((s,i)=>{
     const t=document.createElement("button");
-    t.className="thumb"+(i===idx?" active":""); t.innerHTML=`<img src="${s}" alt="">`;
-    t.addEventListener("click",()=>gotoHost(i));
-    wrap.appendChild(t);
+    t.className="thumb"+(i===idx?" active":""); t.innerHTML='<img src="'+s+'" alt="">';
+    t.addEventListener("click",()=>gotoHost(i)); wrap.appendChild(t);
   });
 }
 function renderHost(){
-  $("#hostImg").src=slides[idx];
-  $("#hostCounter").textContent=`${idx+1} / ${slides.length}`;
+  hostImg.src=slides[idx];
+  $("#hostCounter").textContent=(idx+1)+" / "+slides.length;
   const tw=$("#thumbs"); [...tw.children].forEach((c,i)=>c.classList.toggle("active",i===idx));
   const a=tw.children[idx]; if(a) a.scrollIntoView({inline:"center",block:"nearest"});
 }
+hostImg.addEventListener("load",applyHostView);
+
 function gotoHost(i){
   if(i<0||i>=slides.length) return;
-  idx=i; renderHost(); broadcast({t:"go",index:idx});
+  idx=i; view={zoom:1,cx:.5,cy:.5}; hideHostPointer();
+  renderHost(); applyHostView();
+  broadcast({t:"go",index:idx});
+  broadcast({t:"view",zoom:1,cx:.5,cy:.5});
+  broadcast({t:"ptr",on:false});
 }
-$("#nextBtn").addEventListener("click",()=>gotoHost(idx+1));
-$("#prevBtn").addEventListener("click",()=>gotoHost(idx-1));
-document.querySelectorAll("[data-next]").forEach(z=>z.addEventListener("click",()=>gotoHost(idx+1)));
-document.querySelectorAll("[data-prev]").forEach(z=>z.addEventListener("click",()=>gotoHost(idx-1)));
+
+/* ---- view transform (shared) ---- */
+function applyView(img,wrap,v){
+  const cw=wrap.clientWidth, ch=wrap.clientHeight;
+  const natW=img.naturalWidth||16, natH=img.naturalHeight||9;
+  const base=fitBase(natW,natH,cw,ch);
+  const z=v.zoom||1, sw=base.w*z, sh=base.h*z;
+  const cx=v.cx!=null?v.cx:.5, cy=v.cy!=null?v.cy:.5;
+  img.style.width=sw+"px"; img.style.height=sh+"px";
+  img.style.left=(cw/2 - cx*sw)+"px"; img.style.top=(ch/2 - cy*sh)+"px";
+}
+function applyHostView(){
+  applyView(hostImg,hostWrap,view);
+  hostZoom.textContent=Math.round(view.zoom*100)+"%";
+  hostZoom.classList.toggle("on", view.zoom>1.01);
+}
+function clampView(){
+  if(view.zoom<=1.001){ view.zoom=1; view.cx=.5; view.cy=.5; return; }
+  const r=hostWrap.getBoundingClientRect();
+  const base=fitBase(hostImg.naturalWidth||16,hostImg.naturalHeight||9,r.width,r.height);
+  const sw=base.w*view.zoom, sh=base.h*view.zoom;
+  const hx=Math.min(.5,(r.width/2)/sw), hy=Math.min(.5,(r.height/2)/sh);
+  view.cx=clamp(view.cx,hx,1-hx); view.cy=clamp(view.cy,hy,1-hy);
+}
+let viewPending=false;
+function broadcastView(){
+  if(viewPending) return; viewPending=true;
+  requestAnimationFrame(()=>{ viewPending=false; broadcast({t:"view",zoom:view.zoom,cx:view.cx,cy:view.cy}); });
+}
+function zoomAt(sx,sy,newZoom){
+  newZoom=clamp(newZoom,1,6);
+  const r=hostWrap.getBoundingClientRect();
+  const sw0=hostImg.offsetWidth||1, sh0=hostImg.offsetHeight||1;
+  const fx=(sx-r.left-hostImg.offsetLeft)/sw0, fy=(sy-r.top-hostImg.offsetTop)/sh0;
+  const base=fitBase(hostImg.naturalWidth||16,hostImg.naturalHeight||9,r.width,r.height);
+  const sw=base.w*newZoom, sh=base.h*newZoom;
+  view.zoom=newZoom;
+  view.cx=fx-((sx-r.left)-r.width/2)/sw;
+  view.cy=fy-((sy-r.top)-r.height/2)/sh;
+  if(newZoom<=1.001){ view.zoom=1; view.cx=.5; view.cy=.5; }
+  clampView(); applyHostView(); broadcastView();
+}
+function panBy(dx,dy){
+  const sw=hostImg.offsetWidth||1, sh=hostImg.offsetHeight||1;
+  view.cx-=dx/sw; view.cy-=dy/sh; clampView(); applyHostView(); broadcastView();
+}
+function zoomButton(factor){
+  const r=hostWrap.getBoundingClientRect();
+  zoomAt(r.left+r.width/2, r.top+r.height/2, view.zoom*factor);
+}
+$("#zoomIn").addEventListener("click",()=>zoomButton(1.3));
+$("#zoomOut").addEventListener("click",()=>zoomButton(1/1.3));
+$("#zoomReset").addEventListener("click",()=>{ view={zoom:1,cx:.5,cy:.5}; applyHostView(); broadcast({t:"view",zoom:1,cx:.5,cy:.5}); });
+
+/* ---- pointer / laser ---- */
+let ptrPending=null, ptrRaf=false, hostPtrTimer=null;
+function emitHostPointer(sx,sy){
+  const r=hostWrap.getBoundingClientRect();
+  const sw=hostImg.offsetWidth||1, sh=hostImg.offsetHeight||1;
+  const x=clamp((sx-r.left-hostImg.offsetLeft)/sw,0,1), y=clamp((sy-r.top-hostImg.offsetTop)/sh,0,1);
+  const sr=hostStageArea.getBoundingClientRect();
+  hostLaser.style.left=(sx-sr.left)+"px"; hostLaser.style.top=(sy-sr.top)+"px"; hostLaser.classList.add("on");
+  ptrPending={x,y};
+  if(!ptrRaf){ ptrRaf=true; requestAnimationFrame(()=>{ ptrRaf=false; if(ptrPending) broadcast({t:"ptr",on:true,x:ptrPending.x,y:ptrPending.y}); }); }
+  clearTimeout(hostPtrTimer);
+}
+function hideHostPointerSoon(){ clearTimeout(hostPtrTimer); hostPtrTimer=setTimeout(hideHostPointer,700); }
+function hideHostPointer(){ hostLaser.classList.remove("on"); broadcast({t:"ptr",on:false}); }
+$("#ptrBtn").addEventListener("click",()=>{
+  pointerMode=!pointerMode; $("#ptrBtn").classList.toggle("active",pointerMode);
+  toast(pointerMode?"Pointer ON — sentuh slaid":"Pointer OFF");
+  if(!pointerMode) hideHostPointer();
+});
+
+/* ---- host gestures (pinch zoom, drag pan, tap nav, pointer) ---- */
+(function hostGestures(){
+  const pts=new Map(); let g=null;
+  hostWrap.addEventListener("pointerdown",e=>{
+    hostWrap.setPointerCapture(e.pointerId);
+    pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(pointerMode){ emitHostPointer(e.clientX,e.clientY); return; }
+    if(pts.size===2){ const [a,b]=[...pts.values()];
+      g={type:"pinch",startDist:Math.hypot(a.x-b.x,a.y-b.y)||1,startZoom:view.zoom}; }
+    else{ g={type:"single",startX:e.clientX,startY:e.clientY,lastX:e.clientX,lastY:e.clientY,moved:false}; }
+  });
+  hostWrap.addEventListener("pointermove",e=>{
+    if(!pts.has(e.pointerId)) return;
+    pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(pointerMode){ emitHostPointer(e.clientX,e.clientY); return; }
+    if(g&&g.type==="pinch"&&pts.size>=2){
+      const [a,b]=[...pts.values()];
+      const d=Math.hypot(a.x-b.x,a.y-b.y), mx=(a.x+b.x)/2, my=(a.y+b.y)/2;
+      zoomAt(mx,my,g.startZoom*(d/g.startDist));
+    }else if(g&&g.type==="single"){
+      const dx=e.clientX-g.lastX, dy=e.clientY-g.lastY; g.lastX=e.clientX; g.lastY=e.clientY;
+      if(Math.abs(e.clientX-g.startX)>6||Math.abs(e.clientY-g.startY)>6) g.moved=true;
+      if(view.zoom>1.001) panBy(dx,dy);
+    }
+  });
+  function end(e){
+    if(!pts.has(e.pointerId) && !pointerMode){ return; }
+    if(pointerMode){ pts.delete(e.pointerId); if(pts.size===0) hideHostPointerSoon(); return; }
+    const wasSingle=g&&g.type==="single"; const info=wasSingle?Object.assign({},g):null;
+    pts.delete(e.pointerId);
+    if(pts.size===0){
+      if(wasSingle){
+        if(!info.moved) handleTap(info.startX);
+        else if(view.zoom<=1.001){ const dx=info.lastX-info.startX; if(Math.abs(dx)>45) gotoHost(idx+(dx<0?1:-1)); }
+      }
+      g=null;
+    }else if(pts.size===1){
+      const p=[...pts.values()][0];
+      g={type:"single",startX:p.x,startY:p.y,lastX:p.x,lastY:p.y,moved:true};
+    }
+  }
+  hostWrap.addEventListener("pointerup",end);
+  hostWrap.addEventListener("pointercancel",end);
+  hostWrap.addEventListener("wheel",e=>{ e.preventDefault(); zoomAt(e.clientX,e.clientY,view.zoom*(e.deltaY<0?1.12:1/1.12)); },{passive:false});
+})();
+function handleTap(sx){
+  if(pointerMode || view.zoom>1.001) return;
+  const r=hostWrap.getBoundingClientRect(); const rel=(sx-r.left)/r.width;
+  if(rel<0.3) gotoHost(idx-1); else if(rel>0.7) gotoHost(idx+1); else toggleImmersive();
+}
 
 /* share / copy */
-$("#copyCode").addEventListener("click",()=>{ navigator.clipboard?.writeText(myCode); toast("Kod disalin"); });
+$("#copyCode").addEventListener("click",()=>{ try{navigator.clipboard.writeText(myCode);}catch(e){} toast("Kod disalin"); });
 $("#shareLink").addEventListener("click",async()=>{
   const url=shareUrl(myCode);
-  if(navigator.share){ try{ await navigator.share({title:"Sertai persembahan langsung",text:`Kod: ${myCode}`,url}); }catch(e){} }
-  else { navigator.clipboard?.writeText(url); toast("Link disalin"); }
+  if(navigator.share){ try{ await navigator.share({title:"Sertai persembahan langsung",text:"Kod: "+myCode,url}); }catch(e){} }
+  else { try{navigator.clipboard.writeText(url);}catch(e){} toast("Link disalin"); }
 });
+$("#nextBtn").addEventListener("click",()=>gotoHost(idx+1));
+$("#prevBtn").addEventListener("click",()=>gotoHost(idx-1));
 
 /* =========================================================
    VIEWER
    ========================================================= */
-let vpeer=null, vconn=null, vslides=[], vbuf={}, vtotal=0, vidx=0;
+let vpeer=null, vconn=null, vslides=[], vbuf={}, vtotal=0, vidx=0, vview={zoom:1,cx:.5,cy:.5};
+const viewImg=$("#viewImg"), viewWrap=$("#viewWrap"), viewLaser=$("#viewLaser");
 
 function setViewStatus(state){
   const el=$("#viewStatus");
-  const map={ connecting:["","Menyambung…"], live:["ok","Langsung"], lost:["","Sambungan putus"] };
-  const [cls,txt]=map[state]||["",state];
-  el.className="pill"+(cls?" "+cls:""); el.innerHTML=`<span class="ring"></span>${txt}`;
+  const map={ connecting:["","Menyambung\u2026"], live:["ok","Langsung"], lost:["","Sambungan putus"] };
+  const a=map[state]||["",state]; el.className="pill"+(a[0]?" "+a[0]:""); el.innerHTML='<span class="ring"></span>'+a[1];
 }
-
 $("#joinCode").addEventListener("input",e=>{ e.target.value=e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,""); });
 $("#joinCode").addEventListener("keydown",e=>{ if(e.key==="Enter") joinSession(); });
 $("#joinBtn").addEventListener("click",joinSession);
 
 function joinSession(){
-  const code=$("#joinCode").value.trim().toUpperCase();
-  $("#viewErr").textContent="";
+  const code=$("#joinCode").value.trim().toUpperCase(); $("#viewErr").textContent="";
   if(code.length!==5){ $("#viewErr").textContent="Kod mesti 5 aksara."; return; }
-  $("#viewJoin").classList.add("hidden");
-  $("#viewStage").classList.remove("hidden");
-  setViewStatus("connecting");
-  vslides=[]; vbuf={}; vtotal=0; vidx=0;
-  $("#viewImg").src=""; $("#viewWait").classList.remove("hidden"); $("#viewCounter").classList.add("hidden");
-
+  $("#viewJoin").classList.add("hidden"); $("#viewStage").classList.remove("hidden"); setViewStatus("connecting");
+  vslides=[]; vbuf={}; vtotal=0; vidx=0; vview={zoom:1,cx:.5,cy:.5};
+  viewImg.src=""; viewLaser.classList.remove("on"); $("#viewWait").classList.remove("hidden"); $("#viewCounter").classList.add("hidden");
   if(vpeer){ try{vpeer.destroy();}catch(e){} }
   vpeer=new Peer({config:ICE,debug:1});
   vpeer.on("open",()=>connectToHost(code));
-  vpeer.on("error",err=>{
-    if(err.type==="peer-unavailable"){ showJoinError("Sesi tak dijumpai. Semak kod atau presenter belum mula."); }
-    else showJoinError("Ralat: "+err.type);
-  });
+  vpeer.on("error",err=>{ if(err.type==="peer-unavailable") showJoinError("Sesi tak dijumpai. Semak kod atau presenter belum mula."); else showJoinError("Ralat: "+err.type); });
 }
 function connectToHost(code){
-  vconn=vpeer.connect(PREFIX+code,{reliable:true});
-  let opened=false;
+  vconn=vpeer.connect(PREFIX+code,{reliable:true}); let opened=false;
   const timer=setTimeout(()=>{ if(!opened) showJoinError("Tak dapat menyambung. Cuba rangkaian lain / pastikan presenter aktif."); },12000);
-
   vconn.on("open",()=>{ opened=true; clearTimeout(timer); setViewStatus("live"); });
   vconn.on("data",handleViewData);
   vconn.on("close",()=>{ setViewStatus("lost"); $("#viewWaitTxt").textContent="Presenter telah menamatkan sesi."; $("#viewWait").classList.remove("hidden"); });
   vconn.on("error",()=>{ clearTimeout(timer); showJoinError("Sambungan gagal."); });
 }
-function showJoinError(msg){
-  $("#viewStage").classList.add("hidden");
-  $("#viewJoin").classList.remove("hidden");
-  $("#viewErr").textContent=msg;
-}
+function showJoinError(msg){ $("#viewStage").classList.add("hidden"); $("#viewJoin").classList.remove("hidden"); $("#viewErr").textContent=msg; }
+
 function handleViewData(m){
   switch(m.t){
-    case "empty": $("#viewWaitTxt").textContent="Presenter belum memuat naik slaid…"; break;
+    case "empty": $("#viewWaitTxt").textContent="Presenter belum memuat naik slaid\u2026"; break;
     case "meta": vtotal=m.total; vidx=m.index; vslides=new Array(m.total).fill(null); break;
     case "sb": vbuf[m.i]=new Array(m.n).fill(""); break;
     case "sc": if(vbuf[m.i]) vbuf[m.i][m.k]=m.d; break;
-    case "se":
-      if(vbuf[m.i]){ vslides[m.i]=vbuf[m.i].join(""); delete vbuf[m.i]; if(m.i===vidx) renderView(); }
+    case "se": if(vbuf[m.i]){ vslides[m.i]=vbuf[m.i].join(""); delete vbuf[m.i]; if(m.i===vidx) renderView(); } break;
+    case "go": vidx=m.index; vview={zoom:1,cx:.5,cy:.5}; viewLaser.classList.remove("on"); renderView(); break;
+    case "view": vview={zoom:m.zoom,cx:m.cx,cy:m.cy}; applyView(viewImg,viewWrap,vview); positionViewerLaser(); break;
+    case "ptr":
+      if(m.on){ viewLaser._x=m.x; viewLaser._y=m.y; positionViewerLaser(); viewLaser.classList.add("on"); }
+      else viewLaser.classList.remove("on");
       break;
-    case "go": vidx=m.index; renderView(); break;
   }
 }
 function renderView(){
   if(vslides[vidx]){
-    $("#viewImg").src=vslides[vidx];
-    $("#viewWait").classList.add("hidden");
-    $("#viewCounter").classList.remove("hidden");
-    $("#viewCounter").textContent=`${vidx+1} / ${vtotal}`;
-  }else{
-    $("#viewWait").classList.remove("hidden");
-    $("#viewWaitTxt").textContent="Memuatkan slaid…";
-  }
+    if(viewImg.src!==vslides[vidx]) viewImg.src=vslides[vidx];
+    $("#viewWait").classList.add("hidden"); $("#viewCounter").classList.remove("hidden");
+    $("#viewCounter").textContent=(vidx+1)+" / "+vtotal;
+  }else{ $("#viewWait").classList.remove("hidden"); $("#viewWaitTxt").textContent="Memuatkan slaid\u2026"; }
+}
+viewImg.addEventListener("load",()=>{ applyView(viewImg,viewWrap,vview); positionViewerLaser(); });
+function positionViewerLaser(){
+  if(viewLaser._x==null) return;
+  const sw=viewImg.offsetWidth, sh=viewImg.offsetHeight;
+  viewLaser.style.left=(viewImg.offsetLeft + viewLaser._x*sw)+"px";
+  viewLaser.style.top=(viewImg.offsetTop + viewLaser._y*sh)+"px";
 }
 
 /* =========================================================
-   shared: keyboard, swipe, cleanup, deep-link
+   immersive / fullscreen, resize, keyboard, deeplink
    ========================================================= */
-document.addEventListener("keydown",e=>{
-  if(screens.host.classList.contains("hidden")) return;
-  if($("#hostStage").classList.contains("hidden")) return;
-  if(e.key==="ArrowRight"||e.key===" ") gotoHost(idx+1);
-  if(e.key==="ArrowLeft") gotoHost(idx-1);
-});
-(function swipe(){
-  let x0=null;
-  const stage=$("#hostStage");
-  stage.addEventListener("touchstart",e=>{ x0=e.touches[0].clientX; },{passive:true});
-  stage.addEventListener("touchend",e=>{
-    if(x0===null) return; const dx=e.changedTouches[0].clientX-x0; x0=null;
-    if(Math.abs(dx)>45) gotoHost(idx + (dx<0?1:-1));
-  },{passive:true});
-})();
-
-/* ---------- immersive / fullscreen ---------- */
 function setImmersive(on){
   document.body.classList.toggle("immersive",on);
-  try{
-    if(on){ const el=document.documentElement; if(el.requestFullscreen) el.requestFullscreen().catch(()=>{}); }
-    else if(document.fullscreenElement && document.exitFullscreen){ document.exitFullscreen().catch(()=>{}); }
-  }catch(e){}
+  try{ if(on){ const el=document.documentElement; if(el.requestFullscreen) el.requestFullscreen().catch(()=>{}); }
+       else if(document.fullscreenElement && document.exitFullscreen){ document.exitFullscreen().catch(()=>{}); } }catch(e){}
+  setTimeout(reapplyViews,60);
 }
 function toggleImmersive(){ setImmersive(!document.body.classList.contains("immersive")); }
 $("#fsHost").addEventListener("click",toggleImmersive);
 $("#fsView").addEventListener("click",toggleImmersive);
 $("#fsExit").addEventListener("click",()=>setImmersive(false));
-$("#viewStage").querySelector(".stage").addEventListener("click",e=>{
-  if(e.target.closest(".tapzone")) return;
-  if($("#viewImg").src) toggleImmersive();
+$("#viewStageArea").addEventListener("click",e=>{ if($("#viewImg").src) toggleImmersive(); });
+document.addEventListener("fullscreenchange",()=>{ if(!document.fullscreenElement) document.body.classList.remove("immersive"); reapplyViews(); });
+
+function reapplyViews(){
+  if(!screens.host.classList.contains("hidden") && !$("#hostStage").classList.contains("hidden")) applyHostView();
+  if(!screens.view.classList.contains("hidden") && !$("#viewStage").classList.contains("hidden")){ applyView(viewImg,viewWrap,vview); positionViewerLaser(); }
+}
+let rsTimer=null;
+window.addEventListener("resize",()=>{ clearTimeout(rsTimer); rsTimer=setTimeout(reapplyViews,120); });
+window.addEventListener("orientationchange",()=>setTimeout(reapplyViews,300));
+
+document.addEventListener("keydown",e=>{
+  if(screens.host.classList.contains("hidden")||$("#hostStage").classList.contains("hidden")) return;
+  if(e.key==="ArrowRight"||e.key===" ") gotoHost(idx+1);
+  if(e.key==="ArrowLeft") gotoHost(idx-1);
 });
-document.addEventListener("fullscreenchange",()=>{ if(!document.fullscreenElement) document.body.classList.remove("immersive"); });
 
 function cleanup(){
   setImmersive(false);
   try{peer&&peer.destroy();}catch(e){} peer=null; conns.clear();
   try{vpeer&&vpeer.destroy();}catch(e){} vpeer=null; vconn=null;
-  slides=[]; vslides=[]; idx=0;
+  slides=[]; vslides=[]; idx=0; pointerMode=false; $("#ptrBtn").classList.remove("active");
 }
 
-/* auto-join from ?room=CODE&view=1 */
 (function deeplink(){
   const p=new URLSearchParams(location.search);
   const room=(p.get("room")||"").toUpperCase().replace(/[^A-Z0-9]/g,"");
-  if(room && p.get("view")==="1"){
-    show("view"); $("#joinCode").value=room;
-    if(window.Peer) joinSession();
-  }
+  if(room && p.get("view")==="1"){ show("view"); $("#joinCode").value=room; if(window.Peer) joinSession(); }
 })();
 </script>
 </body>
